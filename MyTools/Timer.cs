@@ -21,7 +21,7 @@ namespace RNA.Timer
 
         private void Update()
         {
-            if (isLevelRunning && GameManager.Instance.currentStatus.Equals(LevelStatus.None))
+            if (isLevelRunning && GameManager.Instance.CurrentState().Equals(GameStatus.GameState.None))
             {
                 currentTime -= Time.deltaTime;
                 UpdateTimerDisplay();

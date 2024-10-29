@@ -1,4 +1,4 @@
-﻿//using Lofelt.NiceVibrations;
+﻿using Lofelt.NiceVibrations;
 using RNA.SaveManager;
 using System.Collections;
 using UnityEngine;
@@ -168,10 +168,10 @@ public class AudioPlayer : MonoBehaviour
 
     public void Vibrate()
     {
-        if (SaveManager.Prefs.GetInt(SharedVariables.Vibration, 0) == 1)
+        if (SaveManager.Prefs.GetBool(SharedVariables.Vibration, true) == false)
             return;
 
-         //HapticPatterns.PlayPreset(HapticPatterns.PresetType.LightImpact);
+         HapticPatterns.PlayPreset(HapticPatterns.PresetType.LightImpact);
     }
 
     public void PlayButtonSound()

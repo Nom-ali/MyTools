@@ -15,6 +15,7 @@ namespace RNA
     public abstract class UIManagerBase : MonoBehaviour
     {
         #region Variables
+        [Foldout("UI Setting", true)]
         [ReadOnly]
         [SerializeField] internal GameObject currentPanel;
 

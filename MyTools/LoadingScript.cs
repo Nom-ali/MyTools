@@ -27,7 +27,9 @@ namespace RNA.LoadingManager
         [SerializeField] private float FadeDuration = 1;
         [SerializeField] private GameObject[] DotList;
 
-        [MyBox.ReadOnly, SerializeField] private bool m_FadeScreen = false;
+        [ReadOnly, SerializeField] private bool m_FadeScreen = false;
+
+
         private void Awake()
         {
             if (Instance == null)
@@ -74,7 +76,10 @@ namespace RNA.LoadingManager
                 yield return null;
             }
 
+            yield return new WaitForSeconds(0.1f);
+
             SceneManager.LoadScene(sceneIndex);
+            
             yield return new WaitForSeconds(.3f);
             yield return FadeOut(0.1f);
             m_FadeScreen = false;
@@ -92,6 +97,7 @@ namespace RNA.LoadingManager
 
         IEnumerator LoadSceneAsync(int sceneIndex, bool manuallyFade, float delay)
         {
+            AdManagers.Instance?.ShowBigBannerAds();
             AudioPlayer.instance?.StopMusic();
 
             if (FillBar) FillBar.fillAmount = 0;
@@ -131,6 +137,7 @@ namespace RNA.LoadingManager
             }
             if(!manuallyFade)
             {
+                AdManagers.Instance?.DestroyBigBanner();
                 yield return FadeOut(FadeDuration);
                 //m_FadeScreen = false;
             }
@@ -174,6 +181,7 @@ namespace RNA.LoadingManager
 
         public void FadeOutLoadingScreen(float duration = 1)
         {
+            AdManagers.Instance?.DestroyBigBanner();
             StartCoroutine(FadeOut(duration));
             //m_FadeScreen = false;
         }

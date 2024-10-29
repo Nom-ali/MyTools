@@ -18,7 +18,7 @@ public class SettingScript : MonoBehaviour
     [SerializeField] private ButtonAction CloseBtn;
     [SerializeField] private ButtonAction HomeBtn;
 
-    private UIManagerBase _UIManager;
+    [SerializeField] private UIManagerBase _UIManager;
 
 
     // Start is called before the first frame update
@@ -26,15 +26,7 @@ public class SettingScript : MonoBehaviour
     {
         SetAtStart();
         AddListerners();
-        //try
-        //{
-        //    _UIManager = UIManager.Instance;
-        //}
-        //catch
-        //{
-        //    _UIManager = GameManager.Instance;
-        //}
-
+       
         if (_UIManager == null)
         {
             _UIManager = FindObjectOfType<UIManagerBase>();
@@ -76,12 +68,12 @@ public class SettingScript : MonoBehaviour
         if (VibrationSetting.OnBtn)
         {
             VibrationSetting.OnBtn.onClick.RemoveAllListeners();
-            VibrationSetting.OnBtn.onClick.AddListener(() => SetVibration(false));
+            VibrationSetting.OnBtn.onClick.AddListener(() => SetVibration());
         }
         if (VibrationSetting.OffBtn)
         {
             VibrationSetting.OffBtn.onClick.RemoveAllListeners();
-            VibrationSetting.OffBtn.onClick.AddListener(() => SetVibration(true));
+            VibrationSetting.OffBtn.onClick.AddListener(() => SetVibration());
         }
 
         if (CloseBtn.button)
@@ -172,16 +164,15 @@ public class SettingScript : MonoBehaviour
         SaveManager.Prefs.SetBool(SharedVariables.Sound, check == true ? true : false);
 
         SetAtStart();
-    }
+    }    
 
-    void SetVibration(bool check)
+    void SetVibration()
     {
-        if (check)
-        {
-            AudioPlayer.instance?.PlayOneShot(AudioType.Button);
-            Handheld.Vibrate();
-        }
-        SaveManager.Prefs.SetBool(SharedVariables.Vibration, check == true ? true : false);
+        bool check = SaveManager.Prefs.GetBool(SharedVariables.Vibration, true);
+        if (!check)
+           AudioPlayer.instance?.Vibrate();
+
+        SaveManager.Prefs.SetBool(SharedVariables.Vibration, !check);
 
         SetAtStart();
     }

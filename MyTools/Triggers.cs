@@ -11,7 +11,7 @@ public class Triggers : MonoBehaviour
     [SerializeField] private UnityEvent<Collider2D> onTriggerExit;
     [MyBox.ReadOnly] public GameObject TriggeredObject;
 
-    private void OnTriggerEnter2D(Collider2D other)
+    private void OnTriggerStay2D(Collider2D other)
     {
         if (other.CompareTag(compareTag))
         {
