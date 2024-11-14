@@ -24,9 +24,10 @@ public abstract class AnimationBase : MonoBehaviour
     [SerializeField] internal float ShowDuration = 0.3f;
     [SerializeField] internal float HideDuration = 0.3f;
 
-    //[Header("********** Loop ********** ")]
-    //[SerializeField] internal int Loops = 1;
-    //[SerializeField] internal LoopType LoopType = LoopType.Restart;
+    [Header("********** Loop ********** ")]
+    [SerializeField] internal int Loops = 1;
+    [ConditionalField(nameof(Loops), true, 0, 1)]
+    [SerializeField] internal LoopType LoopType = LoopType.Restart;
 
     [Header("**********  Ease ********** ")]
     [SerializeField] internal bool SetDefaultEase = false;
@@ -171,6 +172,16 @@ public abstract class AnimationBase : MonoBehaviour
         }
     }
 #endif
+
+    private void OnValidate()
+    {
+        if (ChildList.Count <= 0)
+        {
+            Callings = new();
+            Debug.Log("Calling Reset");
+        }
+    }
+
 }
 
 [Serializable]

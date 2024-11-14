@@ -16,6 +16,36 @@ namespace RNA.SaveManager
     {
         public static ObservableObject<int> Currency = new();
 
+        //Converting Cash digits to Alpahbet-digits
+        public static string FormatEveryThirdPower(long target)
+        {
+            string[] ShortNotationList = new string[12] { "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc" };
+
+            double value = target;
+            int baseValue = 0;
+            string notationValue = "";
+            string toStringValue;
+            if (value >= 1000) // I start using the first notation at 10k
+            {
+                value /= 1000;
+                baseValue++;
+                while (Mathf.Round((float)value) >= 1000)
+                {
+                    value /= 1000;
+                    baseValue++;
+                }
+
+                if (baseValue < 2)
+                    toStringValue = "N1"; // display 1 decimal while under 1 million
+                else
+                    toStringValue = "N2"; // display 2 decimals for 1 million and higher
+
+                if (baseValue > ShortNotationList.Length) return null;
+                else notationValue = ShortNotationList[baseValue];
+            }
+            else toStringValue = ""; // string formatting at low numbers
+            return value.ToString(toStringValue) + notationValue;
+        }
 
         public static int GetLevel(TextMeshProUGUI levelText, bool debug = false)
         {
@@ -30,6 +60,22 @@ namespace RNA.SaveManager
                 levelText.text = "Level : " + (levelNo + 1);
 
             return levelNo;
+        }
+
+        public static bool GetLevelModule(int moduleBy, int currentLevel, bool debug = false)
+        {
+            int levelNo;
+            if (currentLevel > 1)
+                levelNo = currentLevel;
+            else
+                return false;
+
+            if (Prefs.GetBool(SharedVariables.GameCompleted, false, debug) == true)
+            {
+                return (Prefs.GetInt(SharedVariables.RandomLevel) % moduleBy) == 0 ? true : false;
+            }
+            else
+                return (levelNo % moduleBy) == 0 ? true : false;
         }
 
         /// <summary>
