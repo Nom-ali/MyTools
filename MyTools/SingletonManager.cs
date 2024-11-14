@@ -29,9 +29,36 @@ public class SingletonManager : MonoBehaviour
         // Optionally, you can ensure the singleton is a child of this manager for scene persistence
         instance.transform.SetParent(SingletonManager.instance.transform);
 
-        Debug.Log($"{typeof(T)} successfully registered as a singleton.");
-        Debug.Log($"Total No of Singletons in Dictionary: {singletons.Count}");
+        Debug.Log($"{typeof(T)} successfully registered as a singleton, Count: {singletons.Count}");
     }
+
+    // Unregister a MonoBehaviour-derived class from the singletons dictionary
+    public static void UnregisterSingleton<T>(bool destroyGameObject = false) where T : MonoBehaviour
+    {
+        // Check if the singleton exists
+        if (singletons.ContainsKey(typeof(T)))
+        {
+            // Log the unregistration
+
+            // Optionally, destroy the GameObject if specified
+            if (destroyGameObject)
+            {
+                GameObject singletonObject = singletons[typeof(T)].gameObject;
+                Destroy(singletonObject);
+                Debug.Log($"{typeof(T)}'s GameObject destroyed.");
+            }
+
+            // Remove the singleton from the dictionary
+            singletons.Remove(typeof(T));
+            Debug.Log($"{typeof(T)} successfully unregistered as a singleton, Count: {singletons.Count}");
+        }
+        else
+        {
+            Debug.LogWarning($"{typeof(T)} not registered as a singleton, cannot unregister.");
+        }
+    }
+
+
 
     // Retrieve the singleton instance by type
     public static T GetSingleton<T>() where T : MonoBehaviour
