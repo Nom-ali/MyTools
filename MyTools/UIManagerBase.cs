@@ -15,7 +15,7 @@ namespace RNA
     public abstract class UIManagerBase : MonoBehaviour
     {
         #region Variables
-        [Foldout("UI Setting", true)]
+        [Foldout("---------------- UI Manager ----------------", true)]
         [ReadOnly]
         [SerializeField] internal GameObject currentPanel;
 
@@ -52,12 +52,23 @@ namespace RNA
         
         [ConditionalField(nameof(AddPanels), false, PanelSelection.RewardPanel)]
         [SerializeField] internal RewardADPanel rewardADPanel;
+
+        [Header("---------- Additional UI ----------")]
+        [SerializeField] internal TextMeshProUGUI CoinsText;
         #endregion
 
 
         #region Start
         internal virtual IEnumerator Start()
         {
+            Application.targetFrameRate = 60;
+
+            if (CoinsText)
+            {
+                SaveManager.SaveManager.Currency = new();
+                SaveManager.SaveManager.Currency.Initialize(SharedVariables.Coins, CoinsText, 10);
+            }
+
             if (AddPanels.HasFlag(PanelSelection.MainMenu))
                 MainMenuSetting();
 
@@ -74,42 +85,50 @@ namespace RNA
             return Array.Find(PanelsList, panel => panel.panelType == panelType);
         }
 
-        private void Show_Panel(PanelType panelType, bool disableOldPanel = true, Action OnComplete = null)
+        GameObject OldPanel = null;
+        private GameObject Show_Panel(PanelType panelType, bool disableOldPanel = true, Action OnComplete = null)
         {
-            for (int i = 0; i < PanelsList.Length; i++)
-            {
-                AnimationBase animationBase;
-                if (PanelsList[i].Panel == null)
-                    Debug.LogError("Panel not Found.");
+            OldPanel = currentPanel;
+            AnimationBase animationBase;
 
-                if (disableOldPanel && PanelsList[i].Panel && PanelsList[i].Panel.activeSelf)
+            if (disableOldPanel)
+            {
+                PanelSettings[] activePanels = Array.FindAll(PanelsList, panels => panels.Panel.activeInHierarchy == true);
+                foreach (var item in activePanels)
                 {
-                    if (PanelsList[i].Panel.TryGetComponent(out animationBase))
-                        animationBase.Hide();
+                    Debug.Log($"<color=yellow> Panel: {item.panelType}</color> is hiding", item.Panel);
+                    if (item.Panel && item.Panel.TryGetComponent(out animationBase))
+                        animationBase.Hide(OnHide);
                     else
-                        PanelsList[i].Panel?.SetActive(false);
-                    Debug.Log($"Setting OFF Panel: {PanelsList[i].Panel.name}", PanelsList[i].Panel);
-                }
-                else if (PanelsList[i].panelType == panelType)
-                {
-                    currentPanel = PanelsList[i].Panel;
-                    if (PanelsList[i].Panel && PanelsList[i].Panel.TryGetComponent(out animationBase))
-                        animationBase.Show(OnComplete);
-                    else
-                        PanelsList[i].Panel?.SetActive(true);
-                    Debug.Log($"Setting ON Panel: {PanelsList[i].Panel.name}", PanelsList[i].Panel);
+                    {
+                        item.Panel?.SetActive(false);
+                        OnHide?.Invoke();
+                    }
                 }
             }
+
+            PanelSettings panel = Array.Find(PanelsList, panels => panels.panelType == panelType);
+            Debug.Log($"<color=yellow>Panel: {panel.panelType}</color> is Showing", panel.Panel);
+            if (panel.Panel && panel.Panel.TryGetComponent(out animationBase))
+                animationBase.Show(OnShow);
+            else
+            {
+                panel.Panel?.SetActive(true);
+                OnShow?.Invoke();
+            }
+
+            currentPanel = panel.Panel;
+            return panel.Panel;
         }
 
-        public void HidePanel(PanelType panelType, Action OnComplete = null)
+        public void HidePanel(PanelType panelType, Action OnHide = null)
         {
             for (int i = 0; i < PanelsList.Length; i++)
             {
                 if (PanelsList[i].panelType == panelType)
                 {
                     if (PanelsList[i].Panel && PanelsList[i].Panel.TryGetComponent(out AnimationBase animationBase))
-                        animationBase.Hide(OnComplete);
+                        animationBase.Hide(OnHide);
                     else
                         PanelsList[i].Panel?.SetActive(false);
                     Debug.Log($"Setting ON Panel: {PanelsList[i].Panel.name}", PanelsList[i].Panel);
@@ -133,6 +152,9 @@ namespace RNA
                 animation.Hide();
             else
                 currentPanel.SetActive(false);
+
+            if (currentPanel.name.ToLower().Contains("genericpopup"))
+                currentPanel = OldPanel;
         }
 
         /// <summary>
@@ -162,17 +184,17 @@ namespace RNA
             }
         }
 
-        public void ShowPanel(PanelType panelType)
+        public GameObject ShowPanel(PanelType panelType)
         {
             Show_Panel(panelType);
         }
         
-        public void ShowPanel(PanelType panelType, bool disableOldPanel = false)
+        public GameObject ShowPanel(PanelType panelType, bool disableOldPanel = false)
         {
             Show_Panel(panelType, disableOldPanel);
         } 
         
-        public void ShowPanel(PanelType panelType, Action OnComplete)
+        public GameObject ShowPanel(PanelType panelType, Action OnComplete)
         {
             Show_Panel(panelType, OnComplete: OnComplete);
         }
