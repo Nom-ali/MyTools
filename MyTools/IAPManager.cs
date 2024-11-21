@@ -1,17 +1,24 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Purchasing;
 using UnityEngine.Purchasing.Extension;
-
 
 public class IAPManager : MonoBehaviour
 {
     //private string RemoveAds = "ios.flag.painting.removeads";
     private CodelessIAPButton codelessIAPButton;
+
     private string RemoveAds => codelessIAPButton.productId;
 
     [SerializeField] private GameObject LoadingPanel;
+
+    private void OnEnable()
+    {
+        if (gameObject.name.ToLower().Contains("removeads") && PlayerPrefs.GetInt(SharedVariables.RemoveAds, 0) == 1)
+        {
+            gameObject.SetActive(false);
+            return;
+        }
+    }
 
     private void Start()
     {
