@@ -1,6 +1,5 @@
 using Firebase.Extensions;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class CustomAnalytics : MonoBehaviour
@@ -9,7 +8,7 @@ public class CustomAnalytics : MonoBehaviour
     public static System.Action<string> LogEvent;
 
     public bool isFireBaseOkToUse;
-    char[] specialChars = new char[] { '!', '?', '@', '#', '$', '%', '^', '&', '*' }; // Your array of special characters
+    char[] specialChars = new char[] { '!', '?', '@', '#', '$', '%', '^', '&', '*', ':', ';', '"', '<', '>', '|', '[', ']', '(',')', '-' }; // Your array of special characters
 
     private void Awake()
     {
@@ -63,7 +62,8 @@ public class CustomAnalytics : MonoBehaviour
 
         yield return null;
     }
-    public void m_LogEvent(string eventName)
+
+    private void m_LogEvent(string eventName)
     {
         if (!isFireBaseOkToUse)
         {
@@ -86,8 +86,6 @@ public class CustomAnalytics : MonoBehaviour
             Debug.Log("Analytics: Error in Analytics: " + e.ToString());
 
         }
-
-
     }
 
     private void OnDisable()
