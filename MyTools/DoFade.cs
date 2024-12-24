@@ -12,7 +12,7 @@ public class DoFade : AnimationBase
     public override void Awake()
     {
         if(orignalAlpha > 0f)
-            FadeObject.DOFade(orignalAlpha, 0.01f);
+            FadeObject.SetAlpha(orignalAlpha);
 
         if (FadeObject == null)
             FadeObject = rectTransform.GetComponent<Image>();

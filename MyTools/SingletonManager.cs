@@ -1,11 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
+using MyBox;
 
 public class SingletonManager : MonoBehaviour
 {
     // A dictionary to hold references to singleton instances
-    private static Dictionary<System.Type, MonoBehaviour> singletons = new Dictionary<System.Type, MonoBehaviour>();
-
+    private static Dictionary<System.Type, MonoBehaviour> Singletons = new();
+   
     // Register a MonoBehaviour-derived class as a singleton
     public static void RegisterSingleton<T>(T instance) where T : MonoBehaviour
     {
@@ -17,40 +18,62 @@ public class SingletonManager : MonoBehaviour
         }
 
         // If the singleton is already registered, log a warning and return
-        if (singletons.ContainsKey(typeof(T)))
+        if (Singletons.ContainsKey(typeof(T)))
         {
             Debug.LogWarning($"{typeof(T)} is already registered as a singleton.");
             return;
         }
 
         // Register the singleton instance in the dictionary
-        singletons[typeof(T)] = instance;
+        Singletons[typeof(T)] = instance;
 
-        // Optionally, you can ensure the singleton is a child of this manager for scene persistence
-        instance.transform.SetParent(SingletonManager.instance.transform);
-
-        Debug.Log($"{typeof(T)} successfully registered as a singleton, Count: {singletons.Count}");
+        Debug.Log($"{typeof(T)} successfully registered as a singleton, Count: {Singletons.Count}");
     }
 
-    // Unregister a MonoBehaviour-derived class from the singletons dictionary
+    public static void RegisterSingleton<T>(T instance, bool setParent) where T : MonoBehaviour
+    {
+        // Check if the instance is null
+        if (instance == null)
+        {
+            Debug.LogError("Attempted to register a null instance as a singleton.");
+            return;
+        }
+
+        // If the singleton is already registered, log a warning and return
+        if (Singletons.ContainsKey(typeof(T)))
+        {
+            Debug.LogWarning($"{typeof(T)} is already registered as a singleton.");
+            return;
+        }
+
+        // Register the singleton instance in the dictionary
+        Singletons[typeof(T)] = instance;
+
+        // Optionally, you can ensure the singleton is a child of this manager for scene persistence
+        if(setParent) ParentIfNeeded(instance.gameObject);
+
+        Debug.Log($"{typeof(T)} successfully registered as a singleton, Count: {Singletons.Count}");
+    }
+
+    // Unregister a MonoBehaviour-derived class from the Singletons dictionary
     public static void UnregisterSingleton<T>(bool destroyGameObject = false) where T : MonoBehaviour
     {
         // Check if the singleton exists
-        if (singletons.ContainsKey(typeof(T)))
+        if (Singletons.TryGetValue(typeof(T), out MonoBehaviour instance))
         {
             // Log the unregistration
 
             // Optionally, destroy the GameObject if specified
             if (destroyGameObject)
             {
-                GameObject singletonObject = singletons[typeof(T)].gameObject;
-                Destroy(singletonObject);
+                //GameObject singletonObject = Singletons[typeof(T)].gameObject;
+                Destroy(instance.gameObject);
                 Debug.Log($"{typeof(T)}'s GameObject destroyed.");
             }
 
             // Remove the singleton from the dictionary
-            singletons.Remove(typeof(T));
-            Debug.Log($"{typeof(T)} successfully unregistered as a singleton, Count: {singletons.Count}");
+            Singletons.Remove(typeof(T));
+            Debug.Log($"{typeof(T)} successfully unregistered as a singleton, Count: {Singletons.Count}");
         }
         else
         {
@@ -63,21 +86,21 @@ public class SingletonManager : MonoBehaviour
     // Retrieve the singleton instance by type
     public static T GetSingleton<T>() where T : MonoBehaviour
     {
-        // Check if the singleton exists
-        if (singletons.ContainsKey(typeof(T)))
+        if (Singletons.TryGetValue(typeof(T), out MonoBehaviour singleton))
         {
-            return singletons[typeof(T)] as T;
+            return singleton as T;
         }
-
-        // If the singleton doesn't exist, log an error and return null
-        Debug.LogError($"{typeof(T)} singleton not found!");
-        return null;
+        else
+        {
+            Debug.LogError($"Singleton of type {typeof(T)} not found.");
+            return null;
+        }
     }
 
-    // Optionally, clear all registered singletons
+    // Optionally, clear all registered Singletons
     public static void ClearSingletons()
     {
-        singletons.Clear();
+        Singletons.Clear();
     }
 
     // SingletonManager instance for easier access
@@ -93,7 +116,33 @@ public class SingletonManager : MonoBehaviour
         }
         else
         {
+            Debug.LogWarning("An instance of SingletonManager already exists. Destroying the new one.");
             Destroy(gameObject);
+        }
+    }
+
+    public static void ParentIfNeeded(GameObject targetObject)
+    {
+        if (targetObject.HasComponent<RectTransform>())
+        {
+            // The object has a RectTransform, so look for a Canvas in the children
+            Canvas canvas = instance.transform.GetComponentInChildren<Canvas>();
+
+            if (canvas != null)
+            {
+                // If a Canvas is found, make this object a child of that Canvas
+                targetObject.transform.SetParent(canvas.transform);
+                Debug.Log($"{targetObject.name} parented to Canvas.");
+            }
+            else
+            {
+                Debug.LogWarning($"No Canvas found in children of {targetObject.name}.");
+            }
+        }
+        else
+        {
+                targetObject.transform.SetParent(instance.transform);
+                Debug.Log($"{targetObject.name} parented to simple parent.");
         }
     }
 }
