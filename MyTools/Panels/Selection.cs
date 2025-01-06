@@ -1,71 +1,86 @@
+using DG.Tweening;
+using RNA;
 using RNA.SaveManager;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.UI;
 
-public class Selection : MonoBehaviour
+public class Selection : AddListeners
 {
     [SerializeField] private AssetLabelReference AssetLabel;
 
     [SerializeField] private AssetReference PrefabRef;
     [SerializeField] private Transform Container;
-    [SerializeField] private List<Sprite> BtnSprites;
     [SerializeField] private List<Button> Btns;
 
-    //Called from Inspector
-    public async void LoadData()
-    {
-        GameObject obj = await AddressableManager.LoadAsset<GameObject>(PrefabRef);
-        Button button = obj.GetComponent<Button>();
-        List<Sprite> data = await AddressableManager.LoadAssets<Sprite>(AssetLabel);
+    UIManagerBase manager = null;
+    //[SerializeField] private List<Sprite> BtnSprites;
 
-        Debug.Log("Return Data: " + data.Count);
-        while (data == null)
-        {
-            await Task.Yield();
-        }
-        BtnSprites.AddRange(data);
-        await CreatBtns(button);
-        await Task.CompletedTask;
+    private void Awake()
+    {
+        manager = FindObjectOfType<UIManagerBase>();
     }
 
-    async Task CreatBtns(Button button)
+    private void OnEnable()
     {
-        if (BtnSprites.Count <= 0)
-        {
-            Debug.LogError("Btn array Lenght is less than 0");
-            return;
-        }
+        GetComponent<AddListeners>().GetButton(0).interactable = false;
+        Init(manager);
+        _ = AddListener();
+    }
 
-        for (int i = 0; i < BtnSprites.Count; i++)
-        {
-            Button btn = Instantiate(button, Container);
-            Btns.Add(btn);
+    public override void Init(UIManagerBase manager)
+    {
+        base.Init(manager);
+    }
 
+    async Task AddListener()
+    {
+        for (int i = 0; i < Btns.Count; i++)
+        {
             int index = i;
-            Sprite sprite = BtnSprites[index];
-
-            btn.transform.GetChild(0).GetComponent<Image>().sprite = sprite;
+            Button btn = Btns[index];
 
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(() =>
             {
                 SaveManager.Prefs.SetInt(SharedVariables.SelectedCaseTypeID, index, true);
+                GetComponent<AddListeners>().GetButton(0).interactable = true;
             });
+            btn.gameObject.SetActive(false);
         }
 
+        StartCoroutine(EnableBtns());
         await Task.CompletedTask;
     }
 
-    void ReleaseData()
+    IEnumerator EnableBtns()
     {
-        AddressableManager.ReleaseAsset<Sprite>(AssetLabel.labelString);
+        yield return new WaitForSeconds(1);
+        for (int i = 0; i < Btns.Count; i++)
+        {
+            Btns[i].gameObject.SetActive(true);
+            Btns[i].transform.DOScale(Vector3.one, 0.3f).From(0f).SetEase(Ease.OutBack);
+            yield return new WaitForSeconds(0.2f);
+        }
+    }
+
+    void RemoveListener()
+    {
+        for (int i = 0; i < Btns.Count; i++)
+        {
+            int index = i;
+            Button btn = Btns[index];
+
+            btn.onClick.RemoveAllListeners();
+            btn.gameObject.SetActive(false);
+        }
     }
 
     private void OnDisable()
     {
-        ReleaseData();
+        RemoveListener();
     }
 }

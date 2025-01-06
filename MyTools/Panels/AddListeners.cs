@@ -1,15 +1,24 @@
 using RNA;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.UI;
 
 public class AddListeners : MonoBehaviour
 {
     [SerializeField] private ButtonAction[] AddButtons;
-    [Space]
-    [SerializeField] private UnityEvent OnInitComplete = null;
+    [Space(10)]
+    public UnityEvent OnInitComplete = null;
 
-    public void Init(UIManagerBase manager)
+    public Button GetButton(int ButtonIndex)
     {
+        return AddButtons[ButtonIndex].button;
+    }
+
+    public virtual void Init(UIManagerBase manager)
+    {
+        Debug.Log("Init Called", gameObject);
+        OnInitComplete?.Invoke();
+
         foreach (var button in AddButtons)
         {
             ButtonAction btn = button;
@@ -18,12 +27,13 @@ public class AddListeners : MonoBehaviour
             btn.button.onClick.AddListener(() =>
             {
                 Debug.Log($"Btn {btn.button.name} pressed", btn.button);
-                managerBase.OnButtonClicked(btn);
+                this.InvokeAfterDelay(.5f,() => managerBase.OnButtonClicked(btn));
             });
+            btn.button.interactable = button.Interactable;
         }
-
-        OnInitComplete?.Invoke();
     }
+
+
 
     private void OnDisable()
     {

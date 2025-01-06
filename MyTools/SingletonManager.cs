@@ -13,21 +13,21 @@ public class SingletonManager : MonoBehaviour
         // Check if the instance is null
         if (instance == null)
         {
-            Debug.LogError("Attempted to register a null instance as a singleton.");
+            Debug.LogError("SingletonManager: Attempted to register a null instance as a singleton.");
             return;
         }
 
         // If the singleton is already registered, log a warning and return
         if (Singletons.ContainsKey(typeof(T)))
         {
-            Debug.LogWarning($"{typeof(T)} is already registered as a singleton.");
+            Debug.LogWarning($"SingletonManager: {typeof(T)} is already registered as a singleton.");
             return;
         }
 
         // Register the singleton instance in the dictionary
         Singletons[typeof(T)] = instance;
 
-        Debug.Log($"{typeof(T)} successfully registered as a singleton, Count: {Singletons.Count}");
+        Debug.Log($"SingletonManager: {typeof(T)} successfully registered as a singleton, Count: {Singletons.Count}");
     }
 
     public static void RegisterSingleton<T>(T instance, bool setParent) where T : MonoBehaviour
@@ -35,14 +35,14 @@ public class SingletonManager : MonoBehaviour
         // Check if the instance is null
         if (instance == null)
         {
-            Debug.LogError("Attempted to register a null instance as a singleton.");
+            Debug.LogError("SingletonManager: Attempted to register a null instance as a singleton.");
             return;
         }
 
         // If the singleton is already registered, log a warning and return
         if (Singletons.ContainsKey(typeof(T)))
         {
-            Debug.LogWarning($"{typeof(T)} is already registered as a singleton.");
+            Debug.LogWarning($"SingletonManager: {typeof(T)} is already registered as a singleton.");
             return;
         }
 
@@ -52,7 +52,7 @@ public class SingletonManager : MonoBehaviour
         // Optionally, you can ensure the singleton is a child of this manager for scene persistence
         if(setParent) ParentIfNeeded(instance.gameObject);
 
-        Debug.Log($"{typeof(T)} successfully registered as a singleton, Count: {Singletons.Count}");
+        Debug.Log($"SingletonManager: {typeof(T)} successfully registered as a singleton, Count: {Singletons.Count}");
     }
 
     // Unregister a MonoBehaviour-derived class from the Singletons dictionary
@@ -68,16 +68,16 @@ public class SingletonManager : MonoBehaviour
             {
                 //GameObject singletonObject = Singletons[typeof(T)].gameObject;
                 Destroy(instance.gameObject);
-                Debug.Log($"{typeof(T)}'s GameObject destroyed.");
+                Debug.Log($"SingletonManager: {typeof(T)}'s GameObject destroyed.");
             }
 
             // Remove the singleton from the dictionary
             Singletons.Remove(typeof(T));
-            Debug.Log($"{typeof(T)} successfully unregistered as a singleton, Count: {Singletons.Count}");
+            Debug.Log($"SingletonManager: {typeof(T)} successfully unregistered as a singleton, Count: {Singletons.Count}");
         }
         else
         {
-            Debug.LogWarning($"{typeof(T)} not registered as a singleton, cannot unregister.");
+            Debug.LogWarning($"SingletonManager: {typeof(T)} not registered as a singleton, cannot unregister.");
         }
     }
 
@@ -92,7 +92,7 @@ public class SingletonManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError($"Singleton of type {typeof(T)} not found.");
+            Debug.LogError($"SingletonManager: Singleton of type {typeof(T)} not found.");
             return null;
         }
     }
@@ -116,7 +116,7 @@ public class SingletonManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("An instance of SingletonManager already exists. Destroying the new one.");
+            Debug.LogWarning("SingletonManager: An instance of SingletonManager already exists. Destroying the new one.");
             Destroy(gameObject);
         }
     }
@@ -132,17 +132,17 @@ public class SingletonManager : MonoBehaviour
             {
                 // If a Canvas is found, make this object a child of that Canvas
                 targetObject.transform.SetParent(canvas.transform);
-                Debug.Log($"{targetObject.name} parented to Canvas.");
+                Debug.Log($"SingletonManager: {targetObject.name} parented to Canvas.");
             }
             else
             {
-                Debug.LogWarning($"No Canvas found in children of {targetObject.name}.");
+                Debug.LogWarning($"SingletonManager: No Canvas found in children of {targetObject.name}.");
             }
         }
         else
         {
                 targetObject.transform.SetParent(instance.transform);
-                Debug.Log($"{targetObject.name} parented to simple parent.");
+                Debug.Log($"SingletonManager: {targetObject.name} parented to simple parent.");
         }
     }
 }
