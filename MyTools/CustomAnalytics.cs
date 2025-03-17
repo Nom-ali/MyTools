@@ -5,10 +5,10 @@ using UnityEngine;
 public class CustomAnalytics : MonoBehaviour
 {
 
-    public static System.Action<string> LogEvent;
+    private static System.Action<string> LogEvent_;
 
     public bool isFireBaseOkToUse;
-    char[] specialChars = new char[] { '!', '?', '@', '#', '$', '%', '^', '&', '*', ':', ';', '"', '<', '>', '|', '[', ']', '(',')', '-' }; // Your array of special characters
+    char[] specialChars = new char[] { '!', '?', '@', '#', '$', '%', '^', '&', '*', ':', ';', '"', '<', '>', '|', '[', ']', '(', ')', '-' }; // Your array of special characters
 
     private void Awake()
     {
@@ -18,7 +18,14 @@ public class CustomAnalytics : MonoBehaviour
 
     private void Start()
     {
-        LogEvent += m_LogEvent;
+        LogEvent_ += m_LogEvent;
+    }
+
+    public static void LogEvent(params string[] messages)
+    {
+        string combinedEvent = string.Join("_", messages);
+
+        LogEvent_?.Invoke(combinedEvent);
     }
 
     string ReplaceSpecialCharacters(string input)
@@ -50,12 +57,11 @@ public class CustomAnalytics : MonoBehaviour
                 isFireBaseOkToUse = true;
 
                 // Set a flag here to indicate whether Firebase is ready to use by your app.
-                Debug.Log(" Firebase is ready to Use!!!");
+                Debug.Log("Analytics: Firebase is ready to Use!!!");
             }
             else
             {
-                UnityEngine.Debug.LogError(System.String.Format(
-                  "Could not resolve all Firebase dependencies: {0}", dependencyStatus));
+                Debug.LogError(string.Format("Analytics: Could not resolve all Firebase dependencies: {0}", dependencyStatus));
                 // Firebase Unity SDK is not safe to use here.
             }
         });
@@ -63,22 +69,21 @@ public class CustomAnalytics : MonoBehaviour
         yield return null;
     }
 
-    private void m_LogEvent(string eventName)
+    private void m_LogEvent(string eventNames)
     {
-        if (!isFireBaseOkToUse)
+        if (!isFireBaseOkToUse || string.IsNullOrEmpty(eventNames))
         {
-            Debug.Log("Firebase is not Ok To Use");
+            Debug.Log("Analytics: Message is empty or Firebase is not Ok To Use ");
+            return;
         }
 
-        string newString = ReplaceSpecialCharacters(eventName);
-
-        eventName = eventName.Replace(" ", "_");
+        string newString = ReplaceSpecialCharacters(eventNames);
 
         try
         {
-            Firebase.Analytics.FirebaseAnalytics.LogEvent(eventName);
+            Firebase.Analytics.FirebaseAnalytics.LogEvent(newString);
 
-            Debug.Log("Analytics: " + eventName);
+            Debug.Log("Analytics: " + newString);
 
         }
         catch (System.Exception e)
@@ -90,6 +95,6 @@ public class CustomAnalytics : MonoBehaviour
 
     private void OnDisable()
     {
-        LogEvent -= m_LogEvent;
+        LogEvent_ -= m_LogEvent;
     }
 }
