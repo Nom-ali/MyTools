@@ -1,3 +1,4 @@
+using RNA.SaveManager;
 using UnityEngine;
 using UnityEngine.Purchasing;
 using UnityEngine.Purchasing.Extension;
@@ -22,7 +23,7 @@ public class IAPManager : MonoBehaviour
 
     private void Start()
     {
-        if (PlayerPrefs.GetInt(SharedVariables.RemoveAds, 0) == 1)
+        if (SaveManager.Prefs.GetBool(SharedVariables.RemoveAds, false) == true)
         {
             gameObject.SetActive(false);
         }
@@ -48,9 +49,9 @@ public class IAPManager : MonoBehaviour
     {
         if (product.definition.id.Equals(RemoveAds))
         {
-            PlayerPrefs.SetInt(SharedVariables.RemoveAds, 1);
-            if (AdsManager.Instance)
-                AdsManager.Instance.DestroyBanner();
+            SaveManager.Prefs.SetBool(SharedVariables.RemoveAds, true);
+            //if (AdsManager.Instance)
+            //    AdsManager.Instance.DestroyBanner();
             gameObject.SetActive(false);
         }
         LoadingPanel.GetComponent<AnimationBase>().Hide();
