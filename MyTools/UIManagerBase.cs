@@ -15,7 +15,7 @@ namespace RNA
     public abstract class UIManagerBase : MonoBehaviour
     {
         #region Variables
-        [Foldout("---------------- UI Manager ----------------", true)]
+        [Foldout("******************** UI Manager ********************", true)]
         [ReadOnly]
         [SerializeField] internal GameObject currentPanel;
 
@@ -25,7 +25,11 @@ namespace RNA
         [Header("---------- Select Panel ----------")]
         [SerializeField] internal PanelSelection AddPanels;
 
-       
+        [Space]
+        [ConditionalField(nameof(AddPanels), false, PanelSelection.MainMenu)]
+        [SerializeField] internal MainMenu mainMenu;
+        //[SerializeField] internal AddListeners _mainMenu;
+
         [ConditionalField(nameof(AddPanels), false, PanelSelection.Gameplay)]
         [SerializeField] internal Gameplay gameplay;
       
@@ -52,6 +56,7 @@ namespace RNA
 
         [Header("---------- Additional UI ----------")]
         [SerializeField] internal TextMeshProUGUI CoinsText;
+
         #endregion
 
 
@@ -63,8 +68,12 @@ namespace RNA
             if (CoinsText)
             {
                 SaveManager.SaveManager.Currency = new();
+                SaveManager.SaveManager.Currency.ShowDebugLogs = true;
                 SaveManager.SaveManager.Currency.Initialize(SharedVariables.Coins, CoinsText, 10);
             }
+
+            if (AddPanels.HasFlag(PanelSelection.MainMenu))
+                MainMenuSetting();
 
             if (AddPanels.HasFlag(PanelSelection.Gameplay))
                 GameplaySetting(); 
@@ -80,7 +89,7 @@ namespace RNA
         }
 
         GameObject OldPanel = null;
-        private GameObject Show_Panel(PanelType panelType, bool disableOldPanel = true, Action OnComplete = null)
+        private GameObject Show_Panel(PanelType panelType, bool disableOldPanel = true, Action OnShow = null, Action OnHide = null)
         {
             OldPanel = currentPanel;
             AnimationBase animationBase;
@@ -92,10 +101,11 @@ namespace RNA
                 {
                     Debug.Log($"<color=yellow> Panel: {item.panelType}</color> is hiding", item.Panel);
                     if (item.Panel && item.Panel.TryGetComponent(out animationBase))
-                        animationBase.Hide();
+                        animationBase.Hide(OnHide);
                     else
                     {
                         item.Panel?.SetActive(false);
+                        OnHide?.Invoke();
                     }
                 }
             }
@@ -103,33 +113,15 @@ namespace RNA
             PanelSettings panel = Array.Find(PanelsList, panels => panels.panelType == panelType);
             Debug.Log($"<color=yellow>Panel: {panel.panelType}</color> is Showing", panel.Panel);
             if (panel.Panel && panel.Panel.TryGetComponent(out animationBase))
-                animationBase.Show(OnComplete);
+                animationBase.Show(OnShow);
             else
             {
                 panel.Panel?.SetActive(true);
-                OnComplete?.Invoke();
+                OnShow?.Invoke();
             }
-
-            if (panel.Panel.TryGetComponent(out AddListeners addListeners))
-                addListeners.Init(this);
 
             currentPanel = panel.Panel;
             return panel.Panel;
-        }
-
-        public void HideAllPanelExcept(PanelType panelType)
-        {
-            for (int i = 0; i < PanelsList.Length; i++)
-            {
-                if (PanelsList[i].panelType != panelType)
-                {
-                    if (PanelsList[i].Panel && PanelsList[i].Panel.TryGetComponent(out AnimationBase animationBase))
-                        animationBase.Hide();
-                    else
-                        PanelsList[i].Panel?.SetActive(false);
-                    Debug.Log($"Setting OFF Panel: {PanelsList[i].Panel.name}", PanelsList[i].Panel);
-                }               
-            }
         }
 
         public void HidePanel(PanelType panelType, Action OnHide = null)
@@ -197,7 +189,7 @@ namespace RNA
 
         public GameObject ShowPanel(PanelType panelType)
         {
-            return Show_Panel(panelType);
+             return Show_Panel(panelType);
         }
         
         public GameObject ShowPanel(PanelType panelType, bool disableOldPanel = false)
@@ -207,13 +199,17 @@ namespace RNA
         
         public GameObject ShowPanel(PanelType panelType, Action OnComplete)
         {
-            return Show_Panel(panelType, OnComplete: OnComplete);
+            return Show_Panel(panelType, OnShow: OnComplete);
         }
 
         public void AssignPanelSetting(PanelType panelType, Action OnComplete = null)
         {
             switch (panelType)
             {
+
+                case PanelType.MainMenu:
+                    MainMenuSetting();
+                    break;
 
                 case PanelType.Gameplay:
                     GameplaySetting();
@@ -250,29 +246,23 @@ namespace RNA
         #region General 
         internal void Restart(bool fadeLoadingScreen = false)
         {
-            HideAllPanelExcept(PanelType.Loading);
-            LoadingScript loading = SingletonManager.GetSingleton<LoadingScript>();
-            if (loading)
-                loading.LoadingAsync(SceneManager.GetActiveScene().buildIndex, fadeLoadingScreen);
+            if (LoadingScript.Instance)
+                LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex, fadeLoadingScreen);
             else
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         internal void GotoHome(bool fadeLoadingScreen = false)
         {
-            HideAllPanelExcept(PanelType.Loading);
-            LoadingScript loading = SingletonManager.GetSingleton<LoadingScript>();
-            if (loading)
-                loading.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, fadeLoadingScreen);
-            else
-                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex - 1);
+                if (LoadingScript.Instance)
+                    LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, fadeLoadingScreen);
+                else
+                    SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex - 1);
         }
         void GoToGamePlay(bool fadeLoadingScreen = false)
         {
-            HideAllPanelExcept(PanelType.Loading);
-            LoadingScript loading = SingletonManager.GetSingleton<LoadingScript>();
-            if (loading)
-                loading.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, fadeLoadingScreen);
+            if (LoadingScript.Instance)
+                LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, fadeLoadingScreen);
             else
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
         }
@@ -291,6 +281,14 @@ namespace RNA
                 return SharedVariables.AndroidRateUsLink;
             else
                 return SharedVariables.IOSRateUsLink;
+        }    
+        
+        public string OpenPrivacyPolicy()
+        {
+            if (Application.platform == RuntimePlatform.Android)
+                return SharedVariables.PrivacyPolicyLink;
+            else
+                return SharedVariables.IOSPrivacyPolicyLink;
         }
         #endregion
 
@@ -305,7 +303,7 @@ namespace RNA
                 {
                     URLs.RateUs => OpenRateUs(),
                     URLs.MoreGames => OpenMoreGames(),
-                    URLs.PrivacyPolicy => SharedVariables.PrivacyPolicyLink,
+                    URLs.PrivacyPolicy => OpenPrivacyPolicy(),
                     _ => ""
                 };
                 Application.OpenURL(url);
@@ -316,17 +314,15 @@ namespace RNA
             }
             else if(onButton.OnBtnClick.Equals(OnClickAction.LoadScene))
             {
-                HideAllPanelExcept(PanelType.Loading);
-                LoadingScript loading = SingletonManager.GetSingleton<LoadingScript>();
                 onClick = onButton.LoadScene switch
                 {
                     LoadSceneBy.Restart => () => Restart(onButton.ManuallyFadeLoading),
-                    LoadSceneBy.LoadNextScene => () => loading.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, onButton.ManuallyFadeLoading),
-                    LoadSceneBy.loadPreviousScene => () => loading.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.LoadNextScene => () => LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.loadPreviousScene => () => LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, onButton.ManuallyFadeLoading),
                     LoadSceneBy.MainMenu => () => GotoHome(onButton.ManuallyFadeLoading),
                     LoadSceneBy.Gameplay => () => GoToGamePlay(onButton.ManuallyFadeLoading),
-                    LoadSceneBy.ByName => () => loading.LoadingAsync(onButton.SceneName, onButton.ManuallyFadeLoading),
-                    LoadSceneBy.ByID => () => loading.LoadingAsync(onButton.SceneID, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.ByName => () => LoadingScript.Instance.LoadingAsync(onButton.SceneName, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.ByID => () => LoadingScript.Instance.LoadingAsync(onButton.SceneID, onButton.ManuallyFadeLoading),
                     _ => null
                 };
             }
@@ -335,6 +331,7 @@ namespace RNA
                 onClick = onButton.OnBtnClick switch
                 {
                     OnClickAction.ShowPanel => () => ShowPanel(onButton.Panel),
+                    //OnClickAction.HidePanel => () => HidePanel(onButton.Panel),
                     OnClickAction.HideCurrentPanel => () => HideCurrentPanel(),
                     OnClickAction.ExitGame => () => Application.Quit(),
                     OnClickAction.AddClickEvent => () => onButton.OnClickEvent?.Invoke(),
@@ -356,24 +353,22 @@ namespace RNA
                 {
                     URLs.RateUs => OpenRateUs(),
                     URLs.MoreGames => OpenMoreGames(),
-                    URLs.PrivacyPolicy => SharedVariables.PrivacyPolicyLink,
+                    URLs.PrivacyPolicy => OpenPrivacyPolicy(),
                     _ => ""
                 };
                 Application.OpenURL(url);
             }
             else if (onButton.OnBtnClick.Equals(OnClickAction.LoadScene))
             {
-                HideAllPanelExcept(PanelType.Loading);
-                LoadingScript loading = SingletonManager.GetSingleton<LoadingScript>();
                 onClick = onButton.LoadScene switch
                 {
                     LoadSceneBy.Restart => () => Restart(),
-                    LoadSceneBy.LoadNextScene => () => loading.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1),
-                    LoadSceneBy.loadPreviousScene => () => loading.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1),
+                    LoadSceneBy.LoadNextScene => () => LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1),
+                    LoadSceneBy.loadPreviousScene => () => LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1),
                     LoadSceneBy.MainMenu => () => GotoHome(),
                     LoadSceneBy.Gameplay => () => GoToGamePlay(),
-                    LoadSceneBy.ByName => () => loading.LoadingAsync(onButton.SceneName),
-                    LoadSceneBy.ByID => () => loading.LoadingAsync(onButton.SceneID),
+                    LoadSceneBy.ByName => () => LoadingScript.Instance.LoadingAsync(onButton.SceneName),
+                    LoadSceneBy.ByID => () => LoadingScript.Instance.LoadingAsync(onButton.SceneID),
                     _ => null
                 };
             }
@@ -382,6 +377,7 @@ namespace RNA
                 onClick = onButton.OnBtnClick switch
                 {
                     OnClickAction.ShowPanel => () => ShowPanel(onButton.Panel),
+                    //OnClickAction.HidePanel => () => HidePanel(onButton.Panel),
                     OnClickAction.HideCurrentPanel => () => HideCurrentPanel(),
                     OnClickAction.ExitGame => () => Application.Quit(),
                     OnClickAction.AddClickEvent => () => onButton.OnClickEvent?.Invoke(),
@@ -398,114 +394,40 @@ namespace RNA
 
 
         #region Panels Assignements
+        public virtual void MainMenuSetting()
+        {
+            mainMenu.Buttons.Init(this);
+
+        }
+
+
         public virtual void GameplaySetting()
         {
-            if (gameplay.PauseBtn.button)
-            { 
-                gameplay.PauseBtn.button.onClick.RemoveAllListeners();
-                gameplay.PauseBtn.button.onClick.AddListener(() => 
-                {
-                    //Time.timeScale = 0;
-                    OnButtonClicked(gameplay.PauseBtn);
-                });
-            }
+            gameplay.Buttons.Init(this);
+         
         }
            
-        void LevelCompleteSetting()
+        internal virtual void LevelCompleteSetting()
         {
-            if (levelComplete.HomeBtn.button)
-            {
-                levelComplete.HomeBtn.button.onClick.RemoveAllListeners();
-                levelComplete.HomeBtn.button.onClick.AddListener(() => {
-                
-                    OnButtonClicked(levelComplete.HomeBtn);
-                });
-            }
-            
-            if (levelComplete.NextBtn.button)
-            {
-                levelComplete.NextBtn.button.onClick.RemoveAllListeners();
-                levelComplete.NextBtn.button.onClick.AddListener(() => 
-                {
-                    OnButtonClicked(levelComplete.NextBtn);  
-                });
-            }
-        }  
+            levelComplete.Buttons.Init(this);
+             }  
         
         void LevelFailSetting()
         {
-            if (levelFail.HomeBtn.button)
-            {
-                levelFail.HomeBtn.button.onClick.RemoveAllListeners();
-                levelFail.HomeBtn.button.onClick.AddListener(() => {
-               
-                    OnButtonClicked(levelFail.HomeBtn);
-                });
-            }
+            levelFail.Buttons.Init(this);
             
-            if (levelFail.RestartBtn.button)
-            {
-                levelFail.RestartBtn.button.onClick.RemoveAllListeners();
-                levelFail.RestartBtn.button.onClick.AddListener(() => 
-                {
-                  
-                    OnButtonClicked(levelFail.RestartBtn);
-                });
-            }
         }
 
 
         void GamePasueSetting()
         {
-            if (gamePause.HomeBtn.button)
-            {
-                gamePause.HomeBtn.button.onClick.RemoveAllListeners();
-                gamePause.HomeBtn.button.onClick.AddListener(() => {
-                    Time.timeScale = 1;
-                    OnButtonClicked(gamePause.HomeBtn);
-                });
-            }
-
-            if (gamePause.RestartBtn.button)
-            {
-                gamePause.RestartBtn.button.onClick.RemoveAllListeners();
-                gamePause.RestartBtn.button.onClick.AddListener(() =>
-                {
-                    Time.timeScale = 1;
-                    OnButtonClicked(gamePause.RestartBtn);
-                });
-            } 
-            
-            if (gamePause.Resume.button)
-            {
-                //gamePause.Resume.button.onClick.RemoveAllListeners();
-                gamePause.Resume.button.onClick.AddListener(() =>
-                {
-                    Time.timeScale = 1;
-                    OnButtonClicked(gamePause.Resume);
-                });
-            }
+            gamePause.Buttons.Init(this);           
         }
 
         void QuitSetup()
         {
-            if(quit.YesButton.button)
-            {
-                quit.YesButton.button.onClick.RemoveAllListeners();
-                quit.YesButton.button.onClick.AddListener(() =>
-                {
-                    OnButtonClicked(quit.YesButton);
-                });
-            }
-            
-            if(quit.NoButton.button)
-            {
-                quit.NoButton.button.onClick.RemoveAllListeners();
-                quit.NoButton.button.onClick.AddListener(() =>
-                {
-                    OnButtonClicked(quit.NoButton);
-                });
-            }
+            quit.Buttons.Init(this);
+           
         }
 
         void RewardAdPanelSetup()
@@ -518,14 +440,8 @@ namespace RNA
             //        OnButtonClicked(rewardADPanel.YesBtn);
             //    });
             //}  
-            if (rewardADPanel.NoBtn.button)
-            {
-                rewardADPanel.NoBtn.button.onClick.RemoveAllListeners();
-                rewardADPanel.NoBtn.button.onClick.AddListener(() =>
-                {
-                    OnButtonClicked(rewardADPanel.NoBtn);
-                });
-            }
+            rewardADPanel.Buttons.Init(this);
+           
         }
 
         #endregion
@@ -608,7 +524,7 @@ namespace RNA
     [Serializable]
     public enum PanelType
     {
-        None, Loading, MainMenu, ModeSelection, Customization, LevelSelection, MMSetting, GPSetting, Gameplay, GamePause, Restart, LevelComplete, LevelFail, Popup, QuitPanel, Warning, RewardPanel, HintPopup
+        None, Loading, MainMenu, ModeSelection, Customization, LevelSelection, MMSetting, GPSetting, Gameplay, GamePause, Restart, LevelComplete, LevelFail, Popup, QuitPanel, Warning, RewardPanel, HintPopup, AnimalPopup
     }    
     
     [Serializable, Flags]
@@ -649,7 +565,6 @@ namespace RNA
         Popup,
         ExitGame,
         ShowPanel,
-        //HidePanel,
         LoadScene,
         AddClickEvent,
         HideCurrentPanel,
@@ -674,30 +589,32 @@ namespace RNA
     }
 
     [Serializable]
-    public struct ButtonAction
+    public class ButtonAction
     {
-        public Button button;
+        public Button button = null;
+        [ConditionalField(nameof(button))]
+        public bool Interactable = true;
         [ConditionalField(nameof(button))]
         public OnClickAction OnBtnClick;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.ShowPanel /*, OnClickAction.HidePanel*/)]
-        public PanelType Panel;
+        public PanelType Panel = PanelType.None;
         //[ConditionalField(nameof(Panel), false, PanelType.None)]
         //public GameObject PanelObject;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.LoadScene)]
-        public LoadSceneBy LoadScene;
+        public LoadSceneBy LoadScene = LoadSceneBy.None;
         [ConditionalField(nameof(LoadScene), false, LoadSceneBy.ByName)]
-        public string SceneName;
+        public string SceneName = "";
         [ConditionalField(nameof(LoadScene), false, LoadSceneBy.ByID)]
-        public int SceneID;
+        public int SceneID = -1;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.LoadScene)]
-        public bool ManuallyFadeLoading;
+        public bool ManuallyFadeLoading = false;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.URL)]
-        public URLs URL;
+        public URLs URL = URLs.None;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.Popup)]
-        public PopupSetting popupSetting;
+        public PopupSetting popupSetting = null;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.AddClickEvent)]
-        public UnityEvent OnClickEvent;
-        public Action OnClickButton;
+        public UnityEvent OnClickEvent = null;
+        public Action OnClickButton = null;
     }  
     
     [Serializable]
@@ -724,61 +641,57 @@ namespace RNA
     public struct Gameplay
     {
         [Space]
-        public ButtonAction PauseBtn;
-        [Space]
-        public Button HintBtn;
-        public Button SkipLevelBtn;
+        public AddListeners Buttons;
+    }
+    
+    [Serializable]
+    public struct MainMenu
+    {
+        public AddListeners Buttons;
     }
     
     [Serializable]
     public struct LevelComplete
     {
         [Space]
-        public ButtonAction NextBtn;
-        //public ButtonAction RestartBtn;
-        public ButtonAction HomeBtn;
-        //public ButtonAction DoubleReward;
+        public AddListeners Buttons;
+       
     }
          
     [Serializable]
     public struct LevelFail
     {
         [Space]
-        public ButtonAction HomeBtn;
-        public ButtonAction RestartBtn;
-        //public ButtonAction ReviveBtn;
+        public AddListeners Buttons;
     }  
     
     [Serializable]
     public struct GamePause
     {
         [Space]
-        public ButtonAction Resume;
-        public ButtonAction HomeBtn;
-        public ButtonAction RestartBtn;
+        public AddListeners Buttons;
     }
 
     [Serializable]
     public struct Quit
     {
         [Space]
-        public ButtonAction YesButton;
-        public ButtonAction NoButton;
+        public AddListeners Buttons;
     }
 
     [Serializable]
     public struct RewardADPanel
     {
         [Space]
-        public ButtonAction YesBtn;
-        public ButtonAction NoBtn;
+        public AddListeners Buttons;
     }  
     
     [Serializable]
     public struct HintPopup
     {
         [Space]
-        public TextMeshProUGUI Title;
+        public AddListeners Buttons;
+        public Text Title;
         public Image HintImage;
     }
 

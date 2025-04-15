@@ -13,7 +13,7 @@ namespace RNA.LoadingManager
         public static LoadingScript Instance;
 
         [SerializeField] private CanvasGroup Canvas;
-        
+
         [SerializeField] private FillBarType FillBarType = FillBarType.None;
         [ConditionalField(nameof(FillBarType), false, FillBarType.FillImage)]
         [SerializeField] private Image FillBar;
@@ -21,14 +21,13 @@ namespace RNA.LoadingManager
         [SerializeField] private Slider Slider;
 
         [Range(0f, 9f)]
-        [SerializeField] private float Duration = 1;   
+        [SerializeField] private float Duration = 1;
 
         [Range(0f, 1f)]
         [SerializeField] private float FadeDuration = 1;
+
+        [Space]
         [SerializeField] private GameObject[] DotList;
-
-        [ReadOnly, SerializeField] private bool m_FadeScreen = false;
-
 
         private void Awake()
         {
@@ -62,10 +61,9 @@ namespace RNA.LoadingManager
         }
         IEnumerator Load_Scene(int sceneIndex)
         {
-            if(FillBar) FillBar.fillAmount = 0;
-            if(Slider) Slider.value = 0f;
+            if (FillBar) FillBar.fillAmount = 0;
+            if (Slider) Slider.value = 0f;
 
-            m_FadeScreen = true;
             yield return FadeIn(FadeDuration);
             float TimeElapse = 0;
             while (TimeElapse < Duration)
@@ -79,16 +77,15 @@ namespace RNA.LoadingManager
             yield return new WaitForSeconds(0.1f);
 
             SceneManager.LoadScene(sceneIndex);
-            
+
             yield return new WaitForSeconds(.3f);
             yield return FadeOut(0.1f);
-            m_FadeScreen = false;
         }
 
         public void LoadingAsync(int sceneIndex, bool manuallyFade = false)
         {
             StartCoroutine(LoadSceneAsync(sceneIndex, manuallyFade, Duration));
-        } 
+        }
         public void LoadingAsync(string sceneName, bool manuallyFade = false)
         {
             var sceneID = SceneUtility.GetBuildIndexByScenePath(sceneName);
@@ -97,8 +94,8 @@ namespace RNA.LoadingManager
 
         IEnumerator LoadSceneAsync(int sceneIndex, bool manuallyFade, float delay)
         {
-            AdManagers.Instance?.ShowBigBannerAds();
-            AudioPlayer.instance?.StopMusic();
+            //AdsManager.instance?.ShowBigBannerAds();
+            //AudioPlayer.instance?.StopMusic();
 
             if (FillBar) FillBar.fillAmount = 0;
             if (Slider) Slider.value = 0f;
@@ -135,9 +132,9 @@ namespace RNA.LoadingManager
 
                 yield return null;
             }
-            if(!manuallyFade)
+            if (!manuallyFade)
             {
-                AdManagers.Instance?.DestroyBigBanner();
+                //AdsManager.instance?.DestroyBigBanner();
                 yield return FadeOut(FadeDuration);
                 //m_FadeScreen = false;
             }
@@ -148,16 +145,53 @@ namespace RNA.LoadingManager
             switch (FillBarType)
             {
                 case FillBarType.FillImage:
-                   if(FillBar) FillBar.fillAmount = value; 
+                    if (FillBar) FillBar.fillAmount = value;
                     break;
 
                 case FillBarType.Slider:
-                    if(Slider) Slider.value = value; 
+                    if (Slider) Slider.value = value;
                     break;
 
                 default:
                     break;
             }
+        }
+
+
+        public void FadeOutLoadingScreen(float duration = 1)
+        {
+            //AdsManager.instance?.DestroyBigBanner();
+            StartCoroutine(FadeOut(duration));
+            //m_FadeScreen = false;
+        }
+
+        IEnumerator FadeIn(float duration = 1)
+        {
+            if (Canvas & Canvas.gameObject.activeInHierarchy == false)
+                Canvas.gameObject.SetActive(true);
+
+            Canvas.alpha = 0;
+            Canvas.DOFade(1, duration).SetUpdate(true).OnComplete(() =>
+            {
+                Canvas.alpha = 1;
+            });
+            yield return null;
+
+        }
+
+        IEnumerator FadeOut(float duration = 1)
+        {
+            if (Canvas & Canvas.gameObject.activeInHierarchy == false)
+                Canvas.gameObject.SetActive(true);
+
+            Canvas.alpha = 1;
+            Canvas.DOFade(0, duration).SetUpdate(true).OnComplete(() =>
+            {
+                Canvas.alpha = 0;
+                Canvas.gameObject.SetActive(false);
+                AudioPlayer.instance?.PlayBGMusic(true);
+            });
+            yield return null;
         }
 
         IEnumerator AnimateDots()
@@ -178,61 +212,6 @@ namespace RNA.LoadingManager
                 yield return null;
             }
         }
-
-        public void FadeOutLoadingScreen(float duration = 1)
-        {
-            AdManagers.Instance?.DestroyBigBanner();
-            StartCoroutine(FadeOut(duration));
-            //m_FadeScreen = false;
-        }
-
-        IEnumerator FadeIn(float duration = 1)
-        {
-            if (Canvas & Canvas.gameObject.activeInHierarchy == false)
-                Canvas.gameObject.SetActive(true);
-            
-            Canvas.alpha = 0;
-            Canvas.DOFade(1, duration).SetUpdate(true).OnComplete(() =>
-            {
-                Canvas.alpha = 1;
-            });
-            yield return null;
-
-        }  
-        
-        IEnumerator FadeOut(float duration = 1)
-        {
-            if (Canvas & Canvas.gameObject.activeInHierarchy == false)
-                Canvas.gameObject.SetActive(true);
-            
-            Canvas.alpha = 1;
-            Canvas.DOFade(0, duration).SetUpdate(true).OnComplete(() =>
-            {
-                Canvas.alpha = 0;
-                Canvas.gameObject.SetActive(false);
-                AudioPlayer.instance?.PlayBGMusic();
-            });
-            yield return null;
-        }
-
-        //IEnumerator FadeScreen(float duration = 1)
-        //{          
-        //    if (!m_FadeScreen)
-        //        yield break;
-            
-        //    if (Canvas & Canvas.gameObject.activeInHierarchy == false)
-        //        Canvas.gameObject.SetActive(true);
-            
-        //    float targetValue = Canvas.alpha == 0 ? 1 : 0;
-
-        //    Canvas.DOFade(targetValue, duration).SetUpdate(true).OnComplete(() =>
-        //    {
-               
-        //        if (targetValue == 0)
-        //            Canvas.gameObject.SetActive(false);
-        //    });
-        //    yield return null;
-        //}
     }
 }
 
