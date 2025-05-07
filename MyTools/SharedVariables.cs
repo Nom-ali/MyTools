@@ -65,7 +65,7 @@ public class SharedVariables
     public static string AndroidMoreGamesLink = "https://play.google.com/store/apps/developer?id=Game+Tower+Studios&pli=1";
     public static string IOSMoreGamesLink = "https://apps.apple.com/us/developer/hadeel-rashid/id1738594233?see-all=i-phonei-pad-apps";
     
-    public static string PrivacyPolicyLink = "https://gamingtowerstudios.blogspot.com/p/privacy-policy.html";
+    public static string AndroidPrivacyPolicyLink = "https://gamingtowerstudios.blogspot.com/p/privacy-policy.html";
     public static string IOSPrivacyPolicyLink = "https://gamestowerstudios.blogspot.com/p/privacy-policy.html";
 
     public enum Tags

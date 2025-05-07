@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 #if UNITY_IOS
 using Unity.Advertisement.IosSupport;
@@ -19,7 +20,7 @@ public class ATT_PopupHandler : MonoBehaviour
         StartCoroutine(RequestTracking_Auth());
     }
 
-    private  IEnumerator RequestTracking_Auth()
+    private IEnumerator RequestTracking_Auth()
     {
 #if UNITY_IOS
         // check with iOS to see if the user has accepted or declined tracking
@@ -33,9 +34,9 @@ public class ATT_PopupHandler : MonoBehaviour
         }
 
 #else
-            Debug.Log("Unity iOS Support: App Tracking Transparency status not checked, because the platform is not iOS.");
+        Debug.Log("Unity iOS Support: App Tracking Transparency status not checked, because the platform is not iOS.");
 #endif
-        StartCoroutine(LoadingScreen()); 
+        StartCoroutine(LoadingScreen());
         yield return null;
     }
 
@@ -50,8 +51,8 @@ public class ATT_PopupHandler : MonoBehaviour
                         }
 #endif
         Debug.Log("ATT Req is send and Show");
-        UnityEngine.SceneManagement.SceneManager.LoadScene(1);
-        yield return null;
+        yield return new WaitForSeconds(1f);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
     }
 
     private void OnDestroy()

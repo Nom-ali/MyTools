@@ -47,17 +47,17 @@ namespace RNA.SaveManager
             return value.ToString(toStringValue) + notationValue;
         }
 
-        public static int GetLevel(TextMeshProUGUI levelText, bool debug = false)
+        public static int GetLevel(TextMeshProUGUI levelText = null, bool debug = false)
         {
-            int levelNo = Prefs.GetInt(SharedVariables.CurrentLevelNo, 0, debug); ;
-            
+            int levelNo = Prefs.GetInt(SharedVariables.CurrentLevelNo, 0, debug);
+
             if (Prefs.GetBool(SharedVariables.GameCompleted, false, debug) == true)
             {
                 levelNo = Prefs.GetInt(SharedVariables.LastPlayedLevel, 0, debug);
-                levelText.text = "Level : " + Prefs.GetInt(SharedVariables.RandomLevel).ToString();
+                if (levelText) levelText.text = "Level : " + Prefs.GetInt(SharedVariables.RandomLevel).ToString();
             }
             else
-                levelText.text = "Level : " + (levelNo + 1);
+                if (levelText) levelText.text = "Level : " + (levelNo + 1);
 
             return levelNo;
         }
@@ -77,6 +77,13 @@ namespace RNA.SaveManager
             else
                 return (levelNo % moduleBy) == 0 ? true : false;
         }
+
+        public static void SaveNextLevel(bool debug = false)
+        {
+            int levelIndex = Prefs.GetInt(SharedVariables.CurrentLevelNo, 0, debug);
+            Prefs.SetInt(SharedVariables.CurrentLevelNo, levelIndex + 1, debug);
+        }
+
 
         /// <summary>
         /// Use this only when there is no level selection
@@ -115,30 +122,30 @@ namespace RNA.SaveManager
                 Prefs.SetInt(SharedVariables.RandomLevel, Prefs.GetInt(SharedVariables.RandomLevel, totalLevels, debug) + 1, debug);
             }
         }
-           
+
         public static void SaveNextLevel_(int totalLevels)
         {
             if (Prefs.GetBool(SharedVariables.FreeMode, false))
             {
-                while (true) 
+                while (true)
                 {
                     int randomLevel = UnityEngine.Random.Range(0, totalLevels);
                     if (Prefs.GetInt(SharedVariables.RandomLevel, 3) != randomLevel)
                     {
                         Prefs.SetInt(SharedVariables.RandomLevel, randomLevel);
                         break;
-                    } 
+                    }
                 }
             }
             else
             {
                 if (Prefs.GetInt(SharedVariables.UnlockedLevels, 0, true) < totalLevels)
                 {
-                    if(Prefs.GetInt(SharedVariables.CurrentLevelNo, 0) == Prefs.GetInt(SharedVariables.UnlockedLevels))
+                    if (Prefs.GetInt(SharedVariables.CurrentLevelNo, 0) == Prefs.GetInt(SharedVariables.UnlockedLevels))
                         Prefs.SetInt(SharedVariables.UnlockedLevels, Prefs.GetInt(SharedVariables.UnlockedLevels, 0) + 1, true);
                     Prefs.SetInt(SharedVariables.CurrentLevelNo, Prefs.GetInt(SharedVariables.CurrentLevelNo) + 1, true);
 
-                   if(Prefs.GetInt(SharedVariables.CurrentLevelNo, 0, true) == totalLevels )
+                    if (Prefs.GetInt(SharedVariables.CurrentLevelNo, 0, true) == totalLevels)
                     {
                         Prefs.SetInt(SharedVariables.GameCompleted, 1);
                         Prefs.SetBool(SharedVariables.FreeMode, true, true);
@@ -162,7 +169,7 @@ namespace RNA.SaveManager
         public static int GetRandomLevel(int totalLevels, bool SaveRandomLevel = true)
         {
             int randomLevel = UnityEngine.Random.Range(3, totalLevels);
-            if(SaveRandomLevel) Prefs.SetInt(SharedVariables.RandomLevel, randomLevel);
+            if (SaveRandomLevel) Prefs.SetInt(SharedVariables.RandomLevel, randomLevel);
             return randomLevel;
         }
 
@@ -186,7 +193,7 @@ namespace RNA.SaveManager
                     if (File.Exists(filePath))
                     {
                         File.Delete(filePath);
-                       if(debug) Debug.Log($"SaveManager: Successfully deleted {fileName}.json");
+                        if (debug) Debug.Log($"SaveManager: Successfully deleted {fileName}.json");
                     }
                     else
                     {
@@ -203,10 +210,15 @@ namespace RNA.SaveManager
         public static class Prefs
         {
             #region Where Magic Happens
+
+            public static void Save()
+            {
+                PlayerPrefs.Save();
+            }
             public static T Get<T>(string baseKey, T defaultValue = default(T), bool debug = false)
             {
                 var value = JsonConvert.DeserializeObject<T>(PlayerPrefs.GetString(baseKey, JsonConvert.SerializeObject(defaultValue)));
-                if (debug) Debug.Log($"SaveManager: Getting Value of {baseKey}: {value}");
+                if (debug) Debug.Log($"<color=yellow>SaveManager: Getting Value </color> of {baseKey}: {value}");
                 return value;
             }
 
@@ -214,20 +226,20 @@ namespace RNA.SaveManager
             {
                 var serialized = JsonConvert.SerializeObject(value);
                 PlayerPrefs.SetString(baseKey, serialized);
-                if (debug) Debug.Log($"SaveManager: Setting Value of {baseKey}: {value}");
+                if (debug) Debug.Log($"<color=yellow>SaveManager: Setting Value </color> of {baseKey}: {value}");
                 return serialized;
             }
 
             public static void DeleteKey(string baseKey, bool debug = false)
             {
                 PlayerPrefs.DeleteKey(baseKey);
-                if (debug) Debug.Log($"SaveManager: Deleted Value of {baseKey}");
-            } 
-            
+                if (debug) Debug.Log($"<color=yellow>SaveManager: Deleted Value </color> of {baseKey}");
+            }
+
             public static bool Has(string baseKey, bool debug = false)
             {
                 var haskey = PlayerPrefs.HasKey(baseKey);
-                if (debug) Debug.Log($"SaveManager: Has key Value of {baseKey}");
+                if (debug) Debug.Log($"<color=yellow>SaveManager: Has key </color> Value of {baseKey}: {haskey}");
                 return haskey;
             }
 

@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e110dd41264b6541a7f2ef93c790c7a, type: 3}
+  m_Name: AdSettings
+  m_EditorClassIdentifier: 
+  Admob_BannerPosition: 1
+  Admob_MedBannerPosition: 6
+  AdmobAndroidLiveID:
+    BannerID: ca-app-pub-2859651410499834/7051307702
+    MedBannerID: ca-app-pub-2859651410499834/4201783088
+    InterID: ca-app-pub-2859651410499834/1819635083
+    RewardedID: ca-app-pub-2859651410499834/8172817686
+    AppOpenID: ca-app-pub-2859651410499834/5546654347
+    NativeID: 
+  AdmobIosLiveID:
+    BannerID: 
+    MedBannerID: 
+    InterID: 
+    RewardedID: 
+    AppOpenID: 
+    NativeID: 
+  MaxSdkKey: VMMPumfMteM7GKKd4xAspNa3QUHqX9HcKbzaBf4cHwqSLvoZgFznUV5_UzncZasQwb7FZL3TlOEfz2OJkbEmyt
+  ApplovinBannerPosition: 7
+  Applovin_BigBannerPosition: 3
+  ApplovinAndroidLiveID:
+    BannerAdUnitId: 2ca942e9832282df
+    MRecAdUnitId: 15e4435237c6317c
+    InterstitialAdUnitId: 3c0a78f2b5e573ad
+    RewardedAdUnitId: 14e6906c69133d6f
+  ApplovinIosLiveID:
+    BannerAdUnitId: 
+    MRecAdUnitId: 
+    InterstitialAdUnitId: 
+    RewardedAdUnitId: 
+  UnityID_Adroid: 5832086
+  UnityID_iOS: 5832085
+  UnityBannerPosition: 4

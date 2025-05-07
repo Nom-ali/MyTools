@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using RNA.SaveManager;
+using TMPro;
 
 public enum ObservableState
 {
@@ -41,12 +42,12 @@ public class ObservableObject<T>
         }
     }
 
-    public void Initialize(string Key, UnityEngine.UI.Text coinsText = null, T defaultValue = default(T))
+    public void Initialize(string Key, TextMeshProUGUI coinsText = null, T defaultValue = default(T))
     {
         OnValueChanged += () => 
         {
             if (coinsText) coinsText.text = Value.ToString();
-            if (ShowDebugLogs) Debug.Log("Updating texting value");
+            if (ShowDebugLogs) Debug.Log("Updating texting value: " + Value);
         };
 
         OnValueChanged += () =>
