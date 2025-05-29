@@ -1,12 +1,12 @@
 using UnityEngine;
-using UnityEngine.UI;
 using MyBox;
-namespace RNA.Timer
+using TMPro;
+namespace MyTools.Timer
 {
     public class Timer : MonoBehaviour
     {
         public float levelTime = 60f; // Set the time for each level in seconds
-        public Text timerText; // Reference to UI text to display timer
+        public TextMeshProUGUI timerText; // Reference to UI text to display timer
         public RectTransform clockHand;
 
         [ReadOnly, SerializeField] private float currentTime = 0f;
@@ -47,7 +47,7 @@ namespace RNA.Timer
             isLevelRunning = false;
             // You can add logic here for level completion or triggering next level
             Debug.Log("<color=red>********** Level Failed **********</color>");
-            GameManager.Instance.LevelFail();
+            //GameManager.Instance.LevelFail();
         }
 
         void UpdateTimerDisplay()

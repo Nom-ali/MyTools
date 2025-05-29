@@ -15,8 +15,8 @@ public class TimerAds : MonoBehaviour
     {
         yield return new WaitForSeconds(1);
         
-        if (GameManager.Instance.CurrentLevelNo <= 1)
-            yield break;
+        //if (GameManager.Instance.CurrentLevelNo <= 1)
+        //    yield break;
 
         while (true)
         {   
@@ -39,7 +39,7 @@ public class TimerAds : MonoBehaviour
     private void RunMethod()
     {
         // Your method logic here
-        if (GameManager.Instance.CurrentState() == GameStatus.GameState.None)
-            AdsManager.Instance?.ShowInterAds();
+        //if (GameManager.Instance.CurrentState() == GameStatus.GameState.None)
+            //AdsManager.Instance?.ShowInterAds();
     }
 }

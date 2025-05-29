@@ -1,5 +1,5 @@
-using RNA.LoadingManager;
-using RNA.SaveManager;
+using MyTools.LoadingManager;
+using MyTools.SaveManager;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -53,7 +53,7 @@ public class LevelButtonHolder : MonoBehaviour
         SaveManager.Prefs.SetInt(SharedVariables.CurrentLevelNo, levelIndex);
         Debug.Log("Selected Index: " + levelIndex);
 
-        LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1);
+        UIManager.Instance.LoadSceneAsync(SceneManager.GetActiveScene().buildIndex + 1);
     }
 }
 

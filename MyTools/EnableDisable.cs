@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace RNA
+namespace MyTools
 {
     public class EnableDisable : MonoBehaviour
     {
