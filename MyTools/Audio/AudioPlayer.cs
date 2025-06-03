@@ -458,3 +458,21 @@ public enum VibrationType
     Medium,
     Heavy
 }
+
+
+[System.Serializable]
+public enum AudioType
+{
+    None,
+    Button,
+    Coins,
+    GamePlay,
+    MainMenu,
+    LevelComplete,
+    LevelFail,
+    Droppable,
+    PickUps,
+    Died,
+    Effects,
+    Pop
+}
