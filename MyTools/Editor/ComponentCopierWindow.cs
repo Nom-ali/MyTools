@@ -10,7 +10,7 @@ public class ComponentCopierWindow : EditorWindow
     private Dictionary<Component, bool> componentsToCopy = new Dictionary<Component, bool>();
     private bool copyValues = false;
 
-    [MenuItem("MyTools/Component Copier")]
+    [MenuItem("Window/Component Copier")]
     public static void ShowWindow()
     {
         GetWindow<ComponentCopierWindow>("Component Copier");

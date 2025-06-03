@@ -3,13 +3,14 @@
 /// make sure you import this lib
 /// you can add by name from package manager "com.unity.nuget.newtonsoft-json"
 
-using Newtonsoft.Json;
-using UnityEngine;
-using System.IO;
 using System;
+using System.IO;
+using UnityEngine;
+using Newtonsoft.Json;
+using System.Collections.Generic;
 using TMPro;
 
-namespace MyTools.SaveManager
+namespace RNA.SaveManager
 {
     public static class SaveManager
     {
@@ -107,24 +108,15 @@ namespace MyTools.SaveManager
 
             if (Prefs.GetBool(SharedVariables.GameCompleted, false, debug) == true)
             {
-                if (totalLevels <= 1)
+                while (true)
                 {
-                    if (debug) Debug.LogWarning("SaveManager: Only one level available. Skipping random level selection.");
-                    Prefs.SetInt(SharedVariables.LastPlayedLevel, 0, debug);
-                    return;
-                }
-                else
-                {
-                    while (true)
-                    {
-                        int LastLevel = Prefs.GetInt(SharedVariables.LastPlayedLevel, totalLevels, debug);
-                        int levelNum = UnityEngine.Random.Range(0, totalLevels);
+                    int LastLevel = Prefs.GetInt(SharedVariables.LastPlayedLevel, totalLevels, debug);
+                    int levelNum = UnityEngine.Random.Range(0, totalLevels);
 
-                        if (levelNum != LastLevel)
-                        {
-                            Prefs.SetInt(SharedVariables.LastPlayedLevel, levelNum, debug);
-                            break;
-                        }
+                    if (levelNum != LastLevel)
+                    {
+                        Prefs.SetInt(SharedVariables.LastPlayedLevel, levelNum, debug);
+                        break;
                     }
                 }
                 Prefs.SetInt(SharedVariables.RandomLevel, Prefs.GetInt(SharedVariables.RandomLevel, totalLevels, debug) + 1, debug);

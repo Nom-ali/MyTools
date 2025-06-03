@@ -21,7 +21,9 @@ public class DragSprite : MonoBehaviour
 
     void Update()
     {
-                                   
+        if (GameManager.Instance.CurrentCaseManager?.UseBrush == true || (GameManager.Instance.currentTaskState == TaskStates.Sticker && DragThisObject)
+            || (GameManager.Instance.currentTaskState == TaskStates.Chain && DragThisObject))
+        {                             
             // If the mouse button is pressed, start dragging
             if (Input.GetMouseButtonDown(0)) // Left mouse button
             {
@@ -49,7 +51,7 @@ public class DragSprite : MonoBehaviour
             }
 
             // When the mouse button is released, stop dragging
-       
+        }
         else if (Input.GetMouseButtonUp(0))
         {
             _isDragging = false;

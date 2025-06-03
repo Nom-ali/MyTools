@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace MyTools.Dialogue
+namespace RNA.Dialogue
 {
     public class DialogueContainer : MonoBehaviour
     {

@@ -45,12 +45,16 @@ public class DoFadeCanvas : AnimationBase
 
     public override void Show(Action action)
     {
-       OnShow(action);  
+       OnShow(action);
     }
+
 
     internal override void OnShow(Action action)
     {
         Debug.Log("Show Called: " + gameObject.name, gameObject);
+
+        //set initial value
+
         if (gameObject.activeSelf == false)
             gameObject.SetActive(true);
 

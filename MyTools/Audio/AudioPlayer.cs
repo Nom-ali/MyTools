@@ -1,4 +1,4 @@
-using MyTools.SaveManager;
+using RNA.SaveManager;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -379,7 +379,6 @@ public class AudioPlayer : MonoBehaviour
         if (!VibrationEnabled)
             return;
 
-#if UNITY_ANDROID || UNITY_IOS
         switch (type)
         {
             case VibrationType.Light:
@@ -395,7 +394,6 @@ public class AudioPlayer : MonoBehaviour
                 Handheld.Vibrate();
                 break;
         }
-#endif
     }
     #endregion
 
@@ -459,22 +457,4 @@ public enum VibrationType
     Light,
     Medium,
     Heavy
-}
-
-
-[System.Serializable]
-public enum AudioType
-{
-    None,
-    Button,
-    Coins,
-    GamePlay,
-    MainMenu,
-    LevelComplete,
-    LevelFail,
-    Droppable,
-    PickUps,
-    Died,
-    Effects,
-    Pop
 }

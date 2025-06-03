@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 public class LifeSystem : MonoBehaviour
 {
-    public static Action<Action, Action> Died;
+    public static Action<Action> Died;
     public static Action Revived;
 
     [SerializeField] private int NumberOfLives; // Total lives the player starts with

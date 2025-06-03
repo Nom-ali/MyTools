@@ -6,7 +6,7 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "EnumData", menuName = "MyTools/Enums/Enum Data")]
+[CreateAssetMenu(fileName = "EnumData", menuName = "RNA/Enums/Enum Data")]
 public class EnumGenerator : ScriptableObject
 {
     public string ScriptName = "ENUMS";
@@ -24,7 +24,7 @@ public class EnumGenerator : ScriptableObject
             return;
         }
 
-        string path = "Assets/_Game_Assets/Scripts/MyTools/Enums";
+        string path = "Assets/_Game_Assets/Scripts/RNA/Enums";
         if (!Directory.Exists(path))
         {
             Directory.CreateDirectory(path);

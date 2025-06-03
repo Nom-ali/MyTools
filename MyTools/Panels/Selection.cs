@@ -1,82 +1,86 @@
-//using DG.Tweening;
-//using MyTools;
-//using MyTools.SaveManager;
-//using System.Collections;
-//using System.Collections.Generic;
-//using System.Threading.Tasks;
-//using UnityEngine;
-//using UnityEngine.UI;
+using DG.Tweening;
+using RNA;
+using RNA.SaveManager;
+using System.Collections;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.UI;
 
-//public class Selection : AddListeners
-//{
-//    [SerializeField] private Transform Container;
-//    [SerializeField] private List<Button> Btns;
+public class Selection : AddListeners
+{
+    [SerializeField] private AssetLabelReference AssetLabel;
 
-//    UIManagerBase manager = null;
-//    //[SerializeField] private List<Sprite> BtnSprites;
+    [SerializeField] private AssetReference PrefabRef;
+    [SerializeField] private Transform Container;
+    [SerializeField] private List<Button> Btns;
 
-//    private void Awake()
-//    {
-//        manager = GameObject.FindFirstObjectByType<UIManagerBase>();
-//    }
+    UIManagerBase manager = null;
+    //[SerializeField] private List<Sprite> BtnSprites;
 
-//    private void OnEnable()
-//    {
-//        GetComponent<AddListeners>().GetButton(0).interactable = false;
-//        Init(manager);
-//        _ = AddListener();
-//    }
+    private void Awake()
+    {
+        manager = FindObjectOfType<UIManagerBase>();
+    }
 
-//    public override void Init(UIManagerBase manager)
-//    {
-//        base.Init(manager);
-//    }
+    private void OnEnable()
+    {
+        GetComponent<AddListeners>().GetButton(0).interactable = false;
+        Init(manager);
+        _ = AddListener();
+    }
 
-//    async Task AddListener()
-//    {
-//        for (int i = 0; i < Btns.Count; i++)
-//        {
-//            int index = i;
-//            Button btn = Btns[index];
+    public override void Init(UIManagerBase manager)
+    {
+        base.Init(manager);
+    }
 
-//            btn.onClick.RemoveAllListeners();
-//            btn.onClick.AddListener(() =>
-//            {
-//                SaveManager.Prefs.SetInt(SharedVariables.SelectedCaseTypeID, index, true);
-//                GetComponent<AddListeners>().GetButton(0).interactable = true;
-//            });
-//            btn.gameObject.SetActive(false);
-//        }
+    async Task AddListener()
+    {
+        for (int i = 0; i < Btns.Count; i++)
+        {
+            int index = i;
+            Button btn = Btns[index];
 
-//        StartCoroutine(EnableBtns());
-//        await Task.CompletedTask;
-//    }
+            btn.onClick.RemoveAllListeners();
+            btn.onClick.AddListener(() =>
+            {
+                SaveManager.Prefs.SetInt(SharedVariables.SelectedCaseTypeID, index, true);
+                GetComponent<AddListeners>().GetButton(0).interactable = true;
+            });
+            btn.gameObject.SetActive(false);
+        }
 
-//    IEnumerator EnableBtns()
-//    {
-//        yield return new WaitForSeconds(1);
-//        for (int i = 0; i < Btns.Count; i++)
-//        {
-//            Btns[i].gameObject.SetActive(true);
-//            Btns[i].transform.DOScale(Vector3.one, 0.3f).From(0f).SetEase(Ease.OutBack);
-//            yield return new WaitForSeconds(0.2f);
-//        }
-//    }
+        StartCoroutine(EnableBtns());
+        await Task.CompletedTask;
+    }
 
-//    void RemoveListener()
-//    {
-//        for (int i = 0; i < Btns.Count; i++)
-//        {
-//            int index = i;
-//            Button btn = Btns[index];
+    IEnumerator EnableBtns()
+    {
+        yield return new WaitForSeconds(1);
+        for (int i = 0; i < Btns.Count; i++)
+        {
+            Btns[i].gameObject.SetActive(true);
+            Btns[i].transform.DOScale(Vector3.one, 0.3f).From(0f).SetEase(Ease.OutBack);
+            yield return new WaitForSeconds(0.2f);
+        }
+    }
 
-//            btn.onClick.RemoveAllListeners();
-//            btn.gameObject.SetActive(false);
-//        }
-//    }
+    void RemoveListener()
+    {
+        for (int i = 0; i < Btns.Count; i++)
+        {
+            int index = i;
+            Button btn = Btns[index];
 
-//    private void OnDisable()
-//    {
-//        RemoveListener();
-//    }
-//}
+            btn.onClick.RemoveAllListeners();
+            btn.gameObject.SetActive(false);
+        }
+    }
+
+    private void OnDisable()
+    {
+        RemoveListener();
+    }
+}

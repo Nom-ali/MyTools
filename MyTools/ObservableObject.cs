@@ -1,21 +1,25 @@
+
 using System.Collections.Generic;
-using MyTools.SaveManager;
 using UnityEngine;
-using System;
+using RNA.SaveManager;
 using TMPro;
 
+public enum ObservableState
+{
+    Begin,
+    Changed
+}
 
 public class ObservableObject<T>
 {
     protected T _value = default;
-    internal bool ShowDebugLogs { get; set; } = false;
 
-    internal event Action BeforeValueChange;
-    internal event Action OnValueChanged;
-
+    public bool ShowDebugLogs = false;
+    public System.Action<ObservableState> OnStateChanged;
+    public System.Action OnValueChanged;
     private bool RunOnce = false;
 
-    internal T Value
+    public T Value
     {
         get => _value;
         set
@@ -23,48 +27,51 @@ public class ObservableObject<T>
             if (!EqualityComparer<T>.Default.Equals(_value, value))
             {
                 if (ShowDebugLogs) Debug.Log($"New Value {value} is  not equal to the old value.");
+                NotifyObservers(ObservableState.Begin);
                 _value = value;
-                OnValueChanged?.Invoke(); 
+                NotifyOnValueChanged();
+                NotifyObservers(ObservableState.Changed);
             }
             else if(!RunOnce)
             {
                 if (ShowDebugLogs) Debug.Log($"New Value {value} is equal to the old value. \n Running Notify once.");
-                OnValueChanged?.Invoke();
+                NotifyOnValueChanged();
+                NotifyObservers(ObservableState.Changed);
                 RunOnce = true;
             }
         }
     }
 
-    internal void Initialize(string Key, T defaultValue)
+    public void Initialize(string Key, TextMeshProUGUI coinsText = null, T defaultValue = default(T))
     {
         OnValueChanged += () => 
         {
+            if (coinsText) coinsText.text = Value.ToString();
             if (ShowDebugLogs) Debug.Log("Updating texting value: " + Value);
-            SaveManager.Prefs.SetObject(Key, Value, ShowDebugLogs);
         };
-        Value = SaveManager.Prefs.GetObject(Key, defaultValue, ShowDebugLogs);
-    }
 
-    internal void Initialize(string Key, T defaultValue, TextMeshProUGUI coinsText)
-    {
         OnValueChanged += () =>
-        {
-            if (coinsText) coinsText.text = Value.ToString();
-            if (ShowDebugLogs) Debug.Log("Updating texting value: " + Value);
             SaveManager.Prefs.SetObject(Key, Value, ShowDebugLogs);
-        };
+
         Value = SaveManager.Prefs.GetObject(Key, defaultValue, ShowDebugLogs);
     }
 
-    internal void Initialize(string Key, T defaultValue, TextMeshProUGUI coinsText, bool debug)
+
+    protected void NotifyObservers(ObservableState state)
     {
-        OnValueChanged += () => 
+        if (OnStateChanged != null)
         {
-            ShowDebugLogs = debug;
-            if (coinsText) coinsText.text = Value.ToString();
-            if (ShowDebugLogs) Debug.Log("Updating texting value: " + Value);
-            SaveManager.Prefs.SetObject(Key, Value, ShowDebugLogs);
-        };
-        Value = SaveManager.Prefs.GetObject(Key, defaultValue, ShowDebugLogs);
+            if (ShowDebugLogs) Debug.Log("On State changed, Checking current state: " + state);
+            OnStateChanged.Invoke(state);
+        }
+    }
+
+    protected void NotifyOnValueChanged()
+    {
+        if (OnValueChanged != null)
+        {
+            if (ShowDebugLogs) Debug.Log("On Value Changed");
+            OnValueChanged.Invoke();
+        }
     }
 }

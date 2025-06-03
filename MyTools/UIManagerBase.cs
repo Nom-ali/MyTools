@@ -1,29 +1,34 @@
 using UnityEngine.SceneManagement;
 using System.Threading.Tasks;
-using MyTools.LoadingManager;
+using RNA.LoadingManager;
 using System.Collections;
 using UnityEngine.Events;
-using MyTools.TextWritter;
+using RNA.TextWritter;
 using UnityEngine.UI;
 using UnityEngine;
 using System;
 using MyBox;
 using TMPro;
 
-namespace MyTools
+namespace RNA
 {
     public abstract class UIManagerBase : MonoBehaviour
     {
         #region Variables
-       [ReadOnly]
+        [Foldout("******************** UI Manager ********************", true)]
+        [ReadOnly]
         [SerializeField] internal GameObject currentPanel;
 
         [Header("---------- Panels ----------")]
         [SerializeField] internal PanelSettings[] PanelsList;
-        [SerializeField] internal PanelSettings[] IndPanelsList;
 
         [Header("---------- Select Panel ----------")]
         [SerializeField] internal PanelSelection AddPanels;
+
+        [Space]
+        [ConditionalField(nameof(AddPanels), false, PanelSelection.MainMenu)]
+        [SerializeField] internal MainMenu mainMenu;
+        //[SerializeField] internal AddListeners _mainMenu;
 
         [ConditionalField(nameof(AddPanels), false, PanelSelection.Gameplay)]
         [SerializeField] internal Gameplay gameplay;
@@ -40,6 +45,9 @@ namespace MyTools
         [ConditionalField(nameof(AddPanels), false, PanelSelection.Popup)]
         [SerializeField] internal Popup popup;
 
+        [ConditionalField(nameof(AddPanels), false, PanelSelection.HintPopup)]
+        [SerializeField] internal HintPopup hintPopup; 
+
         [ConditionalField(nameof(AddPanels), false, PanelSelection.QuitPanel)]
         [SerializeField] internal Quit quit;
         
@@ -49,39 +57,26 @@ namespace MyTools
         [Header("---------- Additional UI ----------")]
         [SerializeField] internal TextMeshProUGUI CoinsText;
 
-
-        private LoadingScript loadingScript = null;
         #endregion
 
-        public virtual void Awake()
-        {
-            try
-            {
-                if (!loadingScript)
-                {
-                    var loadingPanel = GetPanel(PanelType.LoadingScene);
-                    loadingScript = loadingPanel.Panel.GetComponent<LoadingScript>();
-                }
-            }
-            catch
-            {
-                Debug.LogError("Loading Script not found");
-            }
-        }
 
         #region Start
         internal virtual IEnumerator Start()
         {
             Application.targetFrameRate = 60;
 
-            
             if (CoinsText)
             {
-                SaveManager.SaveManager.Currency.Initialize(SharedVariables.Coins, 10, CoinsText);
+                SaveManager.SaveManager.Currency = new();
+                SaveManager.SaveManager.Currency.ShowDebugLogs = true;
+                SaveManager.SaveManager.Currency.Initialize(SharedVariables.Coins, CoinsText, 10);
             }
 
+            if (AddPanels.HasFlag(PanelSelection.MainMenu))
+                MainMenuSetting();
+
             if (AddPanels.HasFlag(PanelSelection.Gameplay))
-                GameplaySetting();
+                GameplaySetting(); 
             yield return null;
         }
         #endregion
@@ -91,10 +86,6 @@ namespace MyTools
         public PanelSettings GetPanel(PanelType panelType)
         {
             return Array.Find(PanelsList, panel => panel.panelType == panelType);
-        }  
-        public PanelSettings GetPanel_Ind(PanelType panelType)
-        {
-            return Array.Find(IndPanelsList, panel => panel.panelType == panelType);
         }
 
         GameObject OldPanel = null;
@@ -122,11 +113,7 @@ namespace MyTools
             PanelSettings panel = Array.Find(PanelsList, panels => panels.panelType == panelType);
             Debug.Log($"<color=yellow>Panel: {panel.panelType}</color> is Showing", panel.Panel);
             if (panel.Panel && panel.Panel.TryGetComponent(out animationBase))
-            {
                 animationBase.Show(OnShow);
-                animationBase.GetComponent<IInitialization>()?.Init(this);
-            }
-            
             else
             {
                 panel.Panel?.SetActive(true);
@@ -135,39 +122,6 @@ namespace MyTools
 
             currentPanel = panel.Panel;
             return panel.Panel;
-        }
-
-        internal GameObject ShowPanel_Ind(PanelType panelType, Action OnShow = null)
-        {
-            PanelSettings panel = Array.Find(IndPanelsList, panels => panels.panelType == panelType);
-            Debug.Log($"<color=yellow>Panel: {panel.panelType}</color> is Showing", panel.Panel);
-            if (panel.Panel && panel.Panel.TryGetComponent(out AnimationBase animationBase))
-            {
-                animationBase.Show(OnShow);
-                animationBase.GetComponent<IInitialization>()?.Init(this);
-            }
-            else
-            {
-                panel.Panel?.SetActive(true);
-                OnShow?.Invoke();
-            }
-            return panel.Panel;
-        }
-
-        internal void HidePanel_Ind(Action OnHide = null)
-        {
-            PanelSettings[] activePanels = Array.FindAll(IndPanelsList, panels => panels.Panel.activeInHierarchy == true);
-            foreach (var item in activePanels)
-            {
-                Debug.Log($"<color=yellow> Panel: {item.panelType}</color> is hiding", item.Panel);
-                if (item.Panel && item.Panel.TryGetComponent(out AnimationBase animationBase))
-                    animationBase.Hide(OnHide);
-                else
-                {
-                    item.Panel?.SetActive(false);
-                    OnHide?.Invoke();
-                }
-            }
         }
 
         public void HidePanel(PanelType panelType, Action OnHide = null)
@@ -180,7 +134,7 @@ namespace MyTools
                         animationBase.Hide(OnHide);
                     else
                         PanelsList[i].Panel?.SetActive(false);
-                    Debug.Log($"Setting OFF Panel: {PanelsList[i].Panel.name}", PanelsList[i].Panel);
+                    Debug.Log($"Setting ON Panel: {PanelsList[i].Panel.name}", PanelsList[i].Panel);
                 }
                 else if(PanelsList[i].Panel && PanelsList[i].Panel.activeSelf)
                 {
@@ -205,7 +159,33 @@ namespace MyTools
             if (currentPanel.name.ToLower().Contains("genericpopup"))
                 currentPanel = OldPanel;
         }
-                     
+
+        /// <summary>
+        /// Show Hint Popup 
+        /// </summary>
+        /// <param name="hintSprite">Sprite, that will be shown in Popup</param>
+        /// <param name="autoCloseDelay">Hint Popup Auto Closes after given time</param>
+        /// <param name="title">title (Optional)</param>
+        public async void ShowHintPopup(Sprite hintSprite, float autoCloseDelay = 4, string title = "")
+        {
+            if (hintSprite == null)
+                return;
+
+            PanelSettings panelSetting = Array.Find(PanelsList, panel => panel.panelType == PanelType.HintPopup);
+            if(panelSetting.Panel != null)
+            {
+                if (panelSetting.Panel.TryGetComponent(out AnimationBase animationBase))
+                    animationBase.Show();
+
+                if(title.NotNullOrEmpty())
+                    hintPopup.Title.text = title;
+
+                hintPopup.HintImage.sprite = hintSprite;
+
+                await Task.Delay((int)(autoCloseDelay * 1000));
+                animationBase.Hide();
+            }
+        }
 
         public GameObject ShowPanel(PanelType panelType)
         {
@@ -226,6 +206,11 @@ namespace MyTools
         {
             switch (panelType)
             {
+
+                case PanelType.MainMenu:
+                    MainMenuSetting();
+                    break;
+
                 case PanelType.Gameplay:
                     GameplaySetting();
                     break;
@@ -261,23 +246,23 @@ namespace MyTools
         #region General 
         internal void Restart(bool fadeLoadingScreen = false)
         {
-            if (loadingScript)
-                loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex, fadeLoadingScreen);
+            if (LoadingScript.Instance)
+                LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex, fadeLoadingScreen);
             else
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         internal void GotoHome(bool fadeLoadingScreen = false)
         {
-                if (loadingScript)
-                    loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, fadeLoadingScreen);
+                if (LoadingScript.Instance)
+                    LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, fadeLoadingScreen);
                 else
                     SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex - 1);
         }
         void GoToGamePlay(bool fadeLoadingScreen = false)
         {
-            if (loadingScript)
-                loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, fadeLoadingScreen);
+            if (LoadingScript.Instance)
+                LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, fadeLoadingScreen);
             else
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
         }
@@ -301,61 +286,9 @@ namespace MyTools
         public string OpenPrivacyPolicy()
         {
             if (Application.platform == RuntimePlatform.Android)
-                return SharedVariables.AndroidPrivacyPolicyLink;
+                return SharedVariables.PrivacyPolicyLink;
             else
                 return SharedVariables.IOSPrivacyPolicyLink;
-        }
-        #endregion
-
-
-        #region Loading
-
-        internal void FakeLoadScene()
-        {              
-            loadingScript?.FakeLoading(this);
-        }
-
-        internal void LoadScene<T>(T scene)
-        {            
-            if (loadingScript)
-            {
-                if (typeof(T) == typeof(int))
-                {
-                    loadingScript.LoadScene((int)(object)scene);
-                }
-                else if (typeof(T) == typeof(string))
-                {
-                    loadingScript.LoadScene((string)(object)scene);
-                }
-                else
-                {
-                    Debug.LogError("Invalid scene type");
-                }
-            }
-        }    
-        
-        internal void LoadSceneAsync<T>(T scene)
-        {            
-            if (loadingScript)
-            {
-                if (typeof(T) == typeof(int))
-                {
-                    loadingScript.LoadingAsync((int)(object)scene);
-                }
-                else if (typeof(T) == typeof(string))
-                {
-                    loadingScript.LoadingAsync((string)(object)scene);
-                }
-                else
-                {
-                    Debug.LogError("Invalid scene type");
-                }
-            }
-        }
-
-        internal void ManualFadeLoading()
-        {
-            UIManager.Instance.loadingScript?.FadeOutLoadingScreen();
         }
         #endregion
 
@@ -384,13 +317,12 @@ namespace MyTools
                 onClick = onButton.LoadScene switch
                 {
                     LoadSceneBy.Restart => () => Restart(onButton.ManuallyFadeLoading),
-                    LoadSceneBy.LoadNextScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, onButton.ManuallyFadeLoading),
-                    LoadSceneBy.loadPreviousScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.LoadNextScene => () => LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.loadPreviousScene => () => LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, onButton.ManuallyFadeLoading),
                     LoadSceneBy.MainMenu => () => GotoHome(onButton.ManuallyFadeLoading),
                     LoadSceneBy.Gameplay => () => GoToGamePlay(onButton.ManuallyFadeLoading),
-                    LoadSceneBy.ByName => () => loadingScript.LoadingAsync(onButton.SceneName, onButton.ManuallyFadeLoading),
-                    LoadSceneBy.ByID => () => loadingScript.LoadingAsync(onButton.SceneID, onButton.ManuallyFadeLoading),
-                    LoadSceneBy.SceneAsset => () => loadingScript.LoadingAsync(onButton.m_Scene.SceneName, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.ByName => () => LoadingScript.Instance.LoadingAsync(onButton.SceneName, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.ByID => () => LoadingScript.Instance.LoadingAsync(onButton.SceneID, onButton.ManuallyFadeLoading),
                     _ => null
                 };
             }
@@ -399,6 +331,7 @@ namespace MyTools
                 onClick = onButton.OnBtnClick switch
                 {
                     OnClickAction.ShowPanel => () => ShowPanel(onButton.Panel),
+                    //OnClickAction.HidePanel => () => HidePanel(onButton.Panel),
                     OnClickAction.HideCurrentPanel => () => HideCurrentPanel(),
                     OnClickAction.ExitGame => () => Application.Quit(),
                     OnClickAction.AddClickEvent => () => onButton.OnClickEvent?.Invoke(),
@@ -408,7 +341,7 @@ namespace MyTools
 
             onButton.OnClickButton?.Invoke();
             onClick?.Invoke();
-            AudioPlayer.instance?.PlayButtonSound();
+            AudioPlayer.instance?.PlayButtonSound(); 
         }
 
         public void OnButtonClicked(ButtonActionSimple onButton)
@@ -430,12 +363,12 @@ namespace MyTools
                 onClick = onButton.LoadScene switch
                 {
                     LoadSceneBy.Restart => () => Restart(),
-                    LoadSceneBy.LoadNextScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1),
-                    LoadSceneBy.loadPreviousScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1),
+                    LoadSceneBy.LoadNextScene => () => LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1),
+                    LoadSceneBy.loadPreviousScene => () => LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1),
                     LoadSceneBy.MainMenu => () => GotoHome(),
                     LoadSceneBy.Gameplay => () => GoToGamePlay(),
-                    LoadSceneBy.ByName => () => loadingScript.LoadingAsync(onButton.SceneName),
-                    LoadSceneBy.ByID => () => loadingScript.LoadingAsync(onButton.SceneID),
+                    LoadSceneBy.ByName => () => LoadingScript.Instance.LoadingAsync(onButton.SceneName),
+                    LoadSceneBy.ByID => () => LoadingScript.Instance.LoadingAsync(onButton.SceneID),
                     _ => null
                 };
             }
@@ -444,6 +377,7 @@ namespace MyTools
                 onClick = onButton.OnBtnClick switch
                 {
                     OnClickAction.ShowPanel => () => ShowPanel(onButton.Panel),
+                    //OnClickAction.HidePanel => () => HidePanel(onButton.Panel),
                     OnClickAction.HideCurrentPanel => () => HideCurrentPanel(),
                     OnClickAction.ExitGame => () => Application.Quit(),
                     OnClickAction.AddClickEvent => () => onButton.OnClickEvent?.Invoke(),
@@ -460,7 +394,13 @@ namespace MyTools
 
 
         #region Panels Assignements
-      
+        public virtual void MainMenuSetting()
+        {
+            mainMenu.Buttons.Init(this);
+
+        }
+
+
         public virtual void GameplaySetting()
         {
             gameplay.Buttons.Init(this);
@@ -584,32 +524,30 @@ namespace MyTools
     [Serializable]
     public enum PanelType
     {
-        None, LoadingScene, LoadingPopup, MainMenu, ModeSelection, Customization, LevelSelection, Setting, GPSetting, Gameplay,
-        GamePause, Restart, LevelComplete, LevelFail, Popup, QuitPanel, Warning, RewardPanel
+        None, Loading, MainMenu, ModeSelection, Customization, LevelSelection, MMSetting, GPSetting, Gameplay, GamePause, Restart, LevelComplete, LevelFail, Popup, QuitPanel, Warning, RewardPanel, HintPopup, AnimalPopup
     }    
     
     [Serializable, Flags]
     public enum PanelSelection
     {
-        None                    = 0,
-        LoadingScene            = 1 << 0,  // 1
-        LoadingPopup            = 1 << 1,  // 2
-        MainMenu                = 1 << 2,  // 4
-        ModeSelection           = 1 << 3,  // 8
-        Customization           = 1 << 4,  // 16
-        LevelSelection          = 1 << 5,  // 32
-        Setting                 = 1 << 6,  // 64
-        GPSetting               = 1 << 7,  // 128
-        Gameplay                = 1 << 8,  // 256
-        GamePause               = 1 << 9,  // 512
-        Restart                 = 1 << 10, // 1024
-        LevelComplete           = 1 << 11, // 2048
-        LevelFail               = 1 << 12, // 4096
-        Popup                   = 1 << 13, // 8192
-        QuitPanel               = 1 << 14, // 16384
-        Warning                 = 1 << 15, // 32768
-        RewardPanel             = 1 << 16, // 65536
-
+        None                    = 0, 
+        Loading                 = 1 << 0,
+        MainMenu                = 1 << 1,
+        ModeSelection           = 1 << 2,
+        Customization           = 1 << 3,
+        LevelSelection          = 1 << 4,
+        MMSetting               = 1 << 5,
+        GPSetting               = 1 << 6,
+        Gameplay                = 1 << 7,
+        GamePause               = 1 << 8,
+        Restart                 = 1 << 9,
+        LevelComplete           = 1 << 10,
+        LevelFail               = 1 << 11,
+        Popup                   = 1 << 12,
+        QuitPanel               = 1 << 13,
+        Warning                 = 1 << 14,
+        RewardPanel             = 1 << 15,
+        HintPopup               = 1 << 16,
     }
 
     [Serializable]
@@ -647,8 +585,7 @@ namespace MyTools
         MainMenu,
         Gameplay,
         ByName,
-        ByID,
-        SceneAsset
+        ByID
     }
 
     [Serializable]
@@ -657,8 +594,6 @@ namespace MyTools
         public Button button = null;
         [ConditionalField(nameof(button))]
         public bool Interactable = true;
-        [ConditionalField(nameof(button))]
-        public bool AdsOnClick = false;
         [ConditionalField(nameof(button))]
         public OnClickAction OnBtnClick;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.ShowPanel /*, OnClickAction.HidePanel*/)]
@@ -671,8 +606,6 @@ namespace MyTools
         public string SceneName = "";
         [ConditionalField(nameof(LoadScene), false, LoadSceneBy.ByID)]
         public int SceneID = -1;
-        [ConditionalField(nameof(LoadScene), false, LoadSceneBy.SceneAsset)]
-        public SceneReference m_Scene;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.LoadScene)]
         public bool ManuallyFadeLoading = false;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.URL)]
