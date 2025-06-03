@@ -1,6 +1,6 @@
 using DG.Tweening;
 using MyBox;
-using RNA.TextWritter;
+using MyTools.TextWritter;
 using System.Collections;
 using System.Threading.Tasks;
 using TMPro;
@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
-namespace RNA.Dialogue
+namespace MyTools.Dialogue
 {
     public class DialogueManager : MonoBehaviour
     {

@@ -27,6 +27,7 @@ public class AudioSettings : ScriptableObject
         return null;
     }
 
+#if UNITY_EDITOR
     private void OnValidate()
     {
         if (clips == null || clips.Length == 0)
@@ -35,11 +36,12 @@ public class AudioSettings : ScriptableObject
         {
             if (clip.displayName != clip.audioType.ToString())
                 clip.displayName = clip.audioType.ToString();
-            
+
             if (clip.clip == null)
                 Debug.LogError($"Audio clip is missing for {clip.displayName}", this);
         }
     }
+#endif
 }
 
 [Serializable]

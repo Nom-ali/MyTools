@@ -2,9 +2,9 @@
 /// This script is created using these SDK versions
 /// unity Ads SDK 4.12.0
 /// </summary>
+/// 
 
-
-using RNA.SaveManager;
+using MyTools.SaveManager;
 using System;
 using System.Collections;
 using UnityEngine;
@@ -116,15 +116,12 @@ public class IUnityAD : MonoBehaviour, IUnityAdsInitializationListener, IUnityAd
     {
         Debug.Log(" UnityAds: rewarded Loading");
         Advertisement.Load(RewardedPlacementID, this);
-        //CustomAnalytics.LogEvent("Reward: UNITY, Ad Unit SENT");
     }
 
 
     /// <summary>
     /// show unity banner
-    /// </summary>
-
-    [ContextMenu("Show Banner")]
+    /// </summary>  
     public void ShowUnityBanner()
     {
         if (Advertisement.isInitialized)
@@ -141,8 +138,7 @@ public class IUnityAD : MonoBehaviour, IUnityAdsInitializationListener, IUnityAd
 
     /// <summary>
     /// show unity interstitial ads
-    /// </summary>
-    [ContextMenu("Show Inter")]
+    /// </summary>  
     public void ShowUnityInter()
     {
         //showing loading ads popup
@@ -157,8 +153,7 @@ public class IUnityAD : MonoBehaviour, IUnityAdsInitializationListener, IUnityAd
 
     /// <summary>
     /// show unity rewarded ads
-    /// </summary>
-    [ContextMenu("Show Rewarded")]
+    /// </summary>   
     public void ShowUnityRewarded(Action action)
     {
         //showing loading ads popup
@@ -174,8 +169,7 @@ public class IUnityAD : MonoBehaviour, IUnityAdsInitializationListener, IUnityAd
 
     /// <summary>
     /// hide unity banner
-    /// </summary>
-    [ContextMenu("Show BannerClose")]
+    /// </summary>     
     public void UnityBannerClose()
     {
         Debug.Log(" UnityAds: banner hiding");
@@ -198,8 +192,6 @@ public class IUnityAD : MonoBehaviour, IUnityAdsInitializationListener, IUnityAd
         if (Advertisement.isInitialized)
         {
             Debug.Log(" Loading Unity Ads");
-            //LoadUnityBanner();
-
             if (IsAd_Removed == false)
             {
                 LoadUnityInter();
@@ -221,7 +213,6 @@ public class IUnityAD : MonoBehaviour, IUnityAdsInitializationListener, IUnityAd
         else if (placementId.Equals(RewardedPlacementID))
         {
             unityRewardAdsLoaded = true;
-            //CustomAnalytics.LogEvent("Reward: UNITY, Ad Unit LOADED");
         }
         else if (placementId.Equals(BannerPlacementID))
             unityBannerAdsLoaded = true;

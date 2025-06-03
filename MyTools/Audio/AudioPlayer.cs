@@ -1,4 +1,4 @@
-using RNA.SaveManager;
+using MyTools.SaveManager;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -288,6 +288,41 @@ public class AudioPlayer : MonoBehaviour
         sfxSource.Play();
         StartCoroutine(ReleaseAudioSourceWhenFinished(sourceName, selectedClip.length));
     }
+    
+    public void PlayOneShot(AudioType audioType, int index)
+    {
+        if (!sfxSettings.enabled || audioType == AudioType.None)
+            return;
+
+        AudioClipData clipData = sfxSettings.GetClipById(audioType);
+        if (clipData == null)
+        {
+            Debug.LogWarning($"SFX clip with ID '{audioType}' not found!");
+            return;
+        }
+
+        // Create random name to allow multiple instances of the same sound
+        string sourceName = $"SFX_{audioType}_{Random.Range(0, 10000)}";
+        AudioSource sfxSource = CreateAudioSource(sourceName);
+
+        // Set properties
+        AudioClip selectedClip = clipData.clip;
+        if (clipData.variations != null && clipData.variations.Length > 0)
+        {
+            selectedClip = clipData.variations[index];
+        }
+
+        sfxSource.clip = selectedClip;
+        sfxSource.volume = sfxSettings.volume * clipData.volumeMultiplier;
+        sfxSource.pitch = Random.Range(clipData.minPitch, clipData.maxPitch);
+        sfxSource.loop = false;
+        sfxSource.spatialBlend = clipData.spatialBlend;
+        sfxSource.priority = clipData.priority;
+
+        // Play and cleanup
+        sfxSource.Play();
+        StartCoroutine(ReleaseAudioSourceWhenFinished(sourceName, selectedClip.length));
+    }
 
     public void PlayOneShotAtPosition(AudioType audioType, Vector3 position)
     {
@@ -457,4 +492,22 @@ public enum VibrationType
     Light,
     Medium,
     Heavy
+}
+
+
+[System.Serializable]
+public enum AudioType
+{
+    None,
+    Button,
+    Coins,
+    GamePlay,
+    MainMenu,
+    LevelComplete,
+    LevelFail,
+    Droppable,
+    PickUps,
+    Died,
+    Effects,
+    Pop
 }

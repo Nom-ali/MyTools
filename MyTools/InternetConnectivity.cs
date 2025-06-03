@@ -1,12 +1,19 @@
+using MyTools;
+using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class InternetConnectivity : MonoBehaviour
+[System.Serializable]
+public class InternetConnectivity
 {
-
-    [SerializeField] private AnimationBase Popup;
-
+    public InternetConnectivity()
+    {
+      
+    }
+     
+    internal bool checkInternet = true;
+    internal Action OnInternetLost;
+    internal Action OnInternetRestored;
 
     enum Status
     {
@@ -16,24 +23,23 @@ public class InternetConnectivity : MonoBehaviour
     }
 
     private Status status = Status.Hidden;
-
-    // Start is called before the first frame update
-    void Start()
+    
+    internal IEnumerator CheckInternet()
     {
-        DontDestroyOnLoad(gameObject);
-        StartCoroutine(CheckInternet());
-    }
+        if(!checkInternet)
+        {
+            Debug.LogError("CheckInternet is set to false. Internet connectivity check is disabled.");
+            yield break;
+        }
 
-    IEnumerator CheckInternet()
-    {
         while (true)
         {
-            Debug.Log("Intnet Connectivity: " + (Application.internetReachability == NetworkReachability.NotReachable));
+            //Debug.Log("Intnet Connectivity: " + (Application.internetReachability == NetworkReachability.NotReachable));
             if (Application.internetReachability == NetworkReachability.NotReachable)
             {
                 if (status == Status.Hidden)
                 {
-                    Popup.Show();
+                    UIManager.Instance.ShowPanel_Ind(PanelType.LoadingPopup);
                     status = Status.Shown;
                 }
             }
@@ -41,7 +47,7 @@ public class InternetConnectivity : MonoBehaviour
             {
                 if (status == Status.Shown)
                 {
-                    Popup.Hide();
+                    UIManager.Instance.HidePanel_Ind();
                     status = Status.Hidden;
                 }
             }

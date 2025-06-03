@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using MyBox;
-namespace RNA.Timer
+namespace MyTools.Timer
 {
     public class Timer : MonoBehaviour
     {

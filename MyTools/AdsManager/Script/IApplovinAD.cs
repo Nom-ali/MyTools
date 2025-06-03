@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using System;
-using RNA.SaveManager;
+using MyTools.SaveManager;
 
 public class IApplovinAD : MonoBehaviour
 {
@@ -125,7 +125,6 @@ public class IApplovinAD : MonoBehaviour
     #region Applovin ADS
 
     #region Banner Ad Methods
-
     private void InitializeBannerAds()
     {
         if (IsAd_Removed == true)
@@ -144,7 +143,6 @@ public class IApplovinAD : MonoBehaviour
         // Set background or background color for banners to be fully functional.
         MaxSdk.SetBannerBackgroundColor(Applovin_BannerAdsID, Color.black);
     }
-
 
     public void ShowApplovin_Banner()
     {
@@ -202,8 +200,6 @@ public class IApplovinAD : MonoBehaviour
         string networkName = adInfo.NetworkName; // Display name of the network that showed the ad (e.g. "AdColony")
         string adUnitIdentifier = adInfo.AdUnitIdentifier; // The MAX Ad Unit ID
         string placement = adInfo.Placement; // The placement this ad's postbacks are tied to
-
-        //TrackAdRevenue(adInfo);
     }
 
     #endregion
@@ -319,7 +315,6 @@ public class IApplovinAD : MonoBehaviour
     {
         // rewardedStatusText.text = "Loading...";
         MaxSdk.LoadRewardedAd(Applovin_RewardedAdsID);
-        //CustomAnalytics.LogEvent("Reward: APPLOVIN, Ad Unit SENT");
     }
 
     public void ShowApplovin_RewardedAd(Action action)
@@ -342,7 +337,6 @@ public class IApplovinAD : MonoBehaviour
         // Rewarded ad is ready to be shown. MaxSdk.IsRewardedAdReady(rewardedAdUnitId) will now return 'true'
         //  rewardedStatusText.text = "Loaded";
         Debug.Log("Applovin: Rewarded ad loaded");
-        //CustomAnalytics.LogEvent("Reward: APPLOVIN, Ad Unit LOADED");
         // Reset retry attempt
         rewardedRetryAttempt = 0;
     }
@@ -485,12 +479,11 @@ public class IApplovinAD : MonoBehaviour
     #endregion Applovin ADS
 
 
- /***************************************************************************************************************************************
-                                                         Applovin AD Check Methods
- ****************************************************************************************************************************************/
+     /***************************************************************************************************************************************
+                                                             Applovin AD Check Methods
+     ****************************************************************************************************************************************/
    
     #region AD Avalibality Check
-
     public bool IsBannerReady() // method for checking if banner ad is ready
     {
         return isBannerLoaded;
@@ -514,14 +507,3 @@ public class IApplovinAD : MonoBehaviour
 
     #endregion
 }
-
-[Serializable]
-public struct ApplovinIds
-{
-    public string BannerAdUnitId;
-    public string MRecAdUnitId;
-    public string InterstitialAdUnitId;
-    public string RewardedAdUnitId;
-    // public string RewardedInterstitialAdUnitId;
-}
-

@@ -2,7 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Popup : MonoBehaviour
+public class FloatingPopup : MonoBehaviour
 {
     [SerializeField] private Text Message;
     [SerializeField] private Image image;

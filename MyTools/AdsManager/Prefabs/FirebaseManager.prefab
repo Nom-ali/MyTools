@@ -44,5 +44,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6f3fd03507c7c84188f5bb6d2fe46fd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  SelectedFirebaseSDK: 3
   customAnalytics: {fileID: 0}
   remoteConfig: {fileID: 0}

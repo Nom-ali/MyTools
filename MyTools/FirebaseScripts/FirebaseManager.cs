@@ -6,7 +6,7 @@ public class FirebaseManager : MonoBehaviour
 {
     public static FirebaseManager Instance { get; private set; }
 
-    [SerializeField] private FirebaseSDK SelectedFirebaseSDK = FirebaseSDK.None;
+    [SerializeField] private FirebaseSDK SelectedFirebaseSDK = FirebaseSDK.RemoteConfig | FirebaseSDK.Analytics;
 
     [Space]
     [SerializeField] private CustomAnalytics customAnalytics;

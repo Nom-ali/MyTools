@@ -1,4 +1,4 @@
-using RNA.SaveManager;
+using MyTools.SaveManager;
 using System;
 using System.Collections;
 using UnityEngine;
@@ -8,40 +8,44 @@ public class AdsManager : MonoBehaviour
     public static AdsManager Instance;
 
     #region Variables
-    [Header("----- SDK ----------------")]
-    [SerializeField] private AdSDK adSDK;
-    private IAdmobAD admobAd = null;
-    private IApplovinAD applovinAd = null;
-    private IUnityAD unityAd = null;
-
-    [Header("----- Test Mode ----------------")]
+    [Header("---------- SDK ----------------")]
+    [SerializeField] private AdSDK adSDK = AdSDK.AdMob | AdSDK.AppLovin | AdSDK.UnityAds; // Default to all SDKs enabled
+  
+    [Header("---------- Test Mode ----------")]
     [SerializeField] private Platform m_Platform = Platform.Android;
 
-    [Header("----- Debugger ------------------")]
+    [Header("---------- Debugger ----------")]
     [SerializeField]
     bool ShowDebugLogs = false;
 
-    [Header("----- Fram Limit ------------------")]
+    [Header("---------- Fram Limit ----------")]
     [SerializeField]
     bool SetFrames = true;
     [SerializeField] private int Frames = 60;
 
-    [Header("----- Setting ------------------")]
+    [Header("---------- AD Ids --------------")]
     [SerializeField] private AdSettings adSettings; // Reference to the ScriptableObject for Ad configuration
-    [SerializeField] private Priority[] AdPriorityOrder = new Priority[3] { Priority.Admob, Priority.Applovin, Priority.Unity};
 
+    [Header("------- Remote Default --------")]
+    [SerializeField] private bool DEFAULT_ENABLE_ADS = true;
+    [SerializeField] private bool DEFAULT_ENABLE_TEST_ADS = false;
+   
+    [Header("---------- Setting -------------")]
+    [SerializeField] private Priority[] AdPriorityOrder = new Priority[3] { Priority.Admob, Priority.Applovin, Priority.Unity};
+    [Space]
+    [SerializeField] private bool ShowLoadingPanel = false;
+   
     [Space]
     [SerializeField] private bool NeverSleepMode = true;
     [SerializeField] private bool ShowBannerOnLoad = false;
     [SerializeField] private bool ShowAppOpenAdOnLoad = false;
     [SerializeField] private bool ShowAppOpenInBackground = false;
 
-    [Space]
-    [SerializeField] private bool ShowLoadingPanel = false;
-    [SerializeField] private GameObject LoadingPanel;
-
-
     // dont destroy these bool
+    private IAdmobAD admobAd = null;
+    private IApplovinAD applovinAd = null;
+    private IUnityAD unityAd = null;
+
     private bool admobBannerShowing;
     private bool ApplovinBannerShowing;
 
@@ -62,9 +66,18 @@ public class AdsManager : MonoBehaviour
     // Creating Instance
     private void Awake()
     {
-        ENABLE_ADS = FirebaseManager.Instance.GetRemoteConfigValue(RemoteConfigKeys.ENABLE_ADS, true);
-        ENABLE_TEST_ADS = FirebaseManager.Instance.GetRemoteConfigValue(RemoteConfigKeys.ENABLE_TEST_ADS, false);
-        
+        try
+        {
+            ENABLE_ADS = FirebaseManager.Instance.GetRemoteConfigValue(RemoteConfigKeys.ENABLE_ADS, DEFAULT_ENABLE_ADS);
+            ENABLE_TEST_ADS = FirebaseManager.Instance.GetRemoteConfigValue(RemoteConfigKeys.ENABLE_TEST_ADS, DEFAULT_ENABLE_TEST_ADS);
+        }
+        catch
+        {
+            Debug.LogError("FirebaseManager: Remote Config not found.");
+            ENABLE_ADS = DEFAULT_ENABLE_ADS;
+            ENABLE_TEST_ADS = DEFAULT_ENABLE_TEST_ADS;
+        }
+
         if (SetFrames)
             Application.targetFrameRate = Frames;
 
@@ -82,11 +95,8 @@ public class AdsManager : MonoBehaviour
         {
             Destroy(gameObject); // Ensures the old Instance is not duplicated
         }
-
-        if (LoadingPanel != null && LoadingPanel.gameObject.activeSelf)
-            LoadingPanel.SetActive(false);
-
     }
+
     #endregion
 
     #region Start\Initializing
@@ -223,10 +233,10 @@ public class AdsManager : MonoBehaviour
         if (ENABLE_ADS == false)
         {
             Debug.Log("Remote Config: ADS are disabled.");
-            if (admobAd.IsBannerReady)
+            if (admobAd && admobAd.IsBannerReady)
                 admobAd.DestroyBanner(); // Hide AdMob banner if it is ready
 
-            if (applovinAd.IsBannerReady())
+            if (applovinAd && applovinAd.IsBannerReady())
                 applovinAd.DestroyBanner(); // Hide AppLovin banner if it is ready
 
             yield break;
@@ -242,9 +252,7 @@ public class AdsManager : MonoBehaviour
         {
             if (sdkPriority == Priority.Admob && adSDK.HasFlag(AdSDK.AdMob) && !admobBannerShowing && !ApplovinBannerShowing)
             {
-                Debug.Log($"1. Admob: Banner Status: {admobAd.CurrentBannerStatus}");
                 yield return new WaitUntil(() => admobAd != null && admobAd.CurrentBannerStatus != AdsStatus.None);
-                Debug.Log($"2. AdAdmob: Banner Status: {admobAd.CurrentBannerStatus}");
 
                 if (admobAd != null && admobAd.AdmobInitialized && admobAd.CurrentBannerStatus == AdsStatus.Ready) // Check if AdMob banner is ready
                 {
@@ -261,9 +269,7 @@ public class AdsManager : MonoBehaviour
             }
             else if (sdkPriority == Priority.Applovin && adSDK.HasFlag(AdSDK.AppLovin) && !ApplovinBannerShowing && !admobBannerShowing)
             {
-                Debug.Log($"1. Applovin: Banner Status: {applovinAd.CurrentBannerStatus}");
                 yield return new WaitUntil(() => applovinAd != null && applovinAd.CurrentBannerStatus != AdsStatus.None);
-                Debug.Log($"2. Applovin: Banner Status: {applovinAd.CurrentBannerStatus}");
 
                 if (applovinAd != null && applovinAd.CurrentBannerStatus == AdsStatus.Ready) // Check if AppLovin banner is ready
                 {
@@ -278,8 +284,9 @@ public class AdsManager : MonoBehaviour
                 else
                     continue;
             }
+            else
+                Debug.LogError("No banner ad is ready to be shown.");
         }
-        Debug.LogError("No banner ad is ready to be shown.");
     }
 
     #endregion Banner
@@ -290,10 +297,10 @@ public class AdsManager : MonoBehaviour
         if (ENABLE_ADS == false)
         {
             Debug.Log("Remote Config: ADS are disabled.");
-            if (admobAd.IsMedBannerReady)
+            if (admobAd && admobAd.IsMedBannerReady)
                 admobAd.DestroyMedBanner(); // Hide AdMob banner if it is ready
 
-            if (applovinAd.IsMedBannerReady())
+            if (applovinAd && applovinAd.IsMedBannerReady())
                 applovinAd.DestroyMRecBanner(); // Hide AppLovin banner if it is ready
 
             return;
@@ -331,9 +338,10 @@ public class AdsManager : MonoBehaviour
                 else
                     continue;
             }
+            else
+                Debug.LogError("No Med banner ad is ready to be shown.");
         }
 
-        Debug.LogError("No Med banner ad is ready to be shown.");
     }
     #endregion Big Banner
 
@@ -363,14 +371,14 @@ public class AdsManager : MonoBehaviour
         // Check and destroy AdMob Med banner if it is showing
         if (admobMedBannerShowing)
         {
-            admobAd.DestroyMedBanner(); // Call the method to destroy the AdMob Med banner
+            admobAd?.DestroyMedBanner(); // Call the method to destroy the AdMob Med banner
             admobMedBannerShowing = false; // Update the state to indicate Med banner is no longer showing
         }
 
         // Check and destroy AppLovin banner if it is showing
         if (ApplovinMedBannerShowing)
         {
-            applovinAd.HideApplovin_MRecBanner(); // Call the method to destroy the AppLovin Med banner
+            applovinAd?.HideApplovin_MRecBanner(); // Call the method to destroy the AppLovin Med banner
             ApplovinMedBannerShowing = false; // Update the state
         }
     }
@@ -396,7 +404,7 @@ public class AdsManager : MonoBehaviour
         if (ENABLE_ADS == false)
         {
             Debug.Log("Remote Config: ADS are disabled.");
-            if (admobAd.IsInterstitialReady())
+            if (admobAd && admobAd.IsInterstitialReady())
                 admobAd.DestroyInterAds(); // Destroy AdMob banner if it is ready
 
             yield break;
@@ -411,10 +419,7 @@ public class AdsManager : MonoBehaviour
         //Show Loading Ads Panel
         if (ShowLoadingPanel)
         {
-            LoadingPanel.SetActive(true);
-            yield return new WaitForSeconds(2);
-            LoadingPanel.SetActive(false);
-            yield return new WaitUntil(() => LoadingPanel.gameObject.activeSelf == false);
+            yield return UIManager.Instance.ShowLoadingPopup(); 
         }
 
         foreach (Priority sdkPriority in AdPriorityOrder)
@@ -451,7 +456,7 @@ public class AdsManager : MonoBehaviour
                 else
                     continue;
             }
-            else if (sdkPriority == Priority.Unity && (adSDK & AdSDK.UnityAds) != 0)
+            else if (sdkPriority == Priority.Unity && adSDK.HasFlag(AdSDK.UnityAds))
             {
                 if (unityAd != null && unityAd.IsInterstitialReady()) // Check if Unity interstitial is ready
                 {
@@ -469,9 +474,10 @@ public class AdsManager : MonoBehaviour
                     continue;
                 }
             }
+            else
+                Debug.LogError("No interstitial ad is ready to be shown.");
         }
 
-        Debug.LogError("No interstitial ad is ready to be shown.");
         ////Any action/event you want to perform after ads failed to show
         action?.Invoke();
     }
@@ -499,7 +505,7 @@ public class AdsManager : MonoBehaviour
         if (ENABLE_ADS == false)
         {
             Debug.Log("Remote Config: ADS are disabled.");
-            if (admobAd.IsRewardedAdReady())
+            if (admobAd && admobAd.IsRewardedAdReady())
                 admobAd.DestroyRewardedAds(); // Hide AdMob banner if it is ready
 
             yield break;
@@ -508,10 +514,7 @@ public class AdsManager : MonoBehaviour
         //Show Loading Ads Panel
         if (ShowLoadingPanel)
         {
-            LoadingPanel.SetActive(true);
-            yield return new WaitForSeconds(2);
-            LoadingPanel.SetActive(false);
-            yield return new WaitUntil(() => LoadingPanel.gameObject.activeSelf == false);
+            yield return UIManager.Instance.ShowLoadingPopup();
         }
 
         foreach (Priority sdkPriority in AdPriorityOrder)
@@ -525,7 +528,6 @@ public class AdsManager : MonoBehaviour
                     isADLoading = true;
 
                     admobAd.ShowAdmobRewardedAds(rewardedAction);
-                    //CustomAnalytics.LogEvent("Reward: ADMOB, Ad Unit SHOW");
                     StartCoroutine(Reset_AppOpen_ADLoading(2));
                     yield break;
                 }
@@ -540,7 +542,6 @@ public class AdsManager : MonoBehaviour
 
                     isADLoading = true;
 
-                    //CustomAnalytics.LogEvent("Reward: APPLOVIN, Ad Unit SHOW");
                     applovinAd.ShowApplovin_RewardedAd(rewardedAction);
                     StartCoroutine(Reset_AppOpen_ADLoading(2));
                     yield break;
@@ -556,7 +557,6 @@ public class AdsManager : MonoBehaviour
 
                     isADLoading = true;
 
-                    //CustomAnalytics.LogEvent("Reward: UNITY, Ad Unit SHOW");
                     unityAd.ShowUnityRewarded(rewardedAction);
                     StartCoroutine(Reset_AppOpen_ADLoading(2));
                     yield break;
@@ -564,9 +564,10 @@ public class AdsManager : MonoBehaviour
                 else
                     continue;
             }
+            else
+                Debug.LogError("No rewarded ad is ready to be shown.");
         }
 
-        Debug.LogWarning("No interstitial ad is ready to be shown.");
         RewardNotReady?.Invoke();
     }
     #endregion Rewarded
@@ -580,14 +581,14 @@ public class AdsManager : MonoBehaviour
 
     public bool CanShowADOpenAD()
     {
-        return admobAd.IsAppOpenAdReady;
+        return admobAd && admobAd.IsAppOpenAdReady;
     }
     public void ShowAppOpen()
     {
         if (ENABLE_ADS == false)
         {
             Debug.Log("Remote Config: ADS are disabled.");
-            if (admobAd.IsAppOpenAdReady)
+            if (admobAd && admobAd.IsAppOpenAdReady)
                 admobAd.DestroyAppOpenAd(); // Hide AdMob banner if it is ready
 
             return;
@@ -600,7 +601,7 @@ public class AdsManager : MonoBehaviour
         //    return; 
         //}
 
-        if (admobAd.AdmobInitialized && admobAd.IsAppOpenAdReady)
+        if (admobAd && admobAd.AdmobInitialized && admobAd.IsAppOpenAdReady)
         {
             admobAd.ShowAppOpenAd();
         }
@@ -624,7 +625,7 @@ public class AdsManager : MonoBehaviour
             return;
         }
 
-        if (!pauseStatus && !isADLoading && admobAd.AdmobInitialized && admobAd.IsAppOpenAdReady)
+        if (!pauseStatus && !isADLoading && admobAd && admobAd.AdmobInitialized && admobAd.IsAppOpenAdReady)
         {
             // App has resumed from the background
             Debug.Log("App resumed from the background. Attempting to show App Open Ad.");
@@ -634,19 +635,13 @@ public class AdsManager : MonoBehaviour
     #endregion Application Paused
 
     #endregion Show Methods
-
-    public void RemoveADs()
-    {
-        SaveManager.Prefs.SetBool(SharedVariables.RemoveAds, true);
-        DestroyBanner();
-    }
-
 }
 
-/***************************************************************************************************************************************
-                                                       Extras
-//**************************************************************************************************************************************/
+    /***************************************************************************************************************************************
+                                                             Extras
+    //**************************************************************************************************************************************/
 
+#region Extras
 [Serializable, Flags]
 public enum AdSDK
 {
@@ -677,3 +672,4 @@ public enum AdsStatus
     Ready,
     NotReady,
 }
+#endregion

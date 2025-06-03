@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace RNA.TextWritter
+namespace MyTools.TextWritter
 {
     //    public static class Animations
     //    {

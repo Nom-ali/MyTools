@@ -1,21 +1,20 @@
 /// <summary>
-/// This script is created using these SDK versions
-/// Admob 9.1.0 or above
+/// This script is created using aDMOB 10.0.0 Version
 /// </summary>
-using GoogleMobileAds.Api;
-using RNA.SaveManager;
-using System;
-using System.Collections;
 using System.Collections.Generic;
+using GoogleMobileAds.Api;
+using System.Collections;
+using MyTools.SaveManager;
 using UnityEngine;
+using System;
 
 public class IAdmobAD : MonoBehaviour
 {
+    #region Variables
     [SerializeField] private Platform m_Platform = Platform.Android;
 
     private bool IsAd_Removed => SaveManager.Prefs.GetBool(SharedVariables.RemoveAds, false) == true;
 
-    #region Variables
     [Header("----- Test Mode ----------------")]
     [SerializeField] private bool EnableTestIds = false;
     [SerializeField] AdPosition BannerPosition;
@@ -75,7 +74,8 @@ public class IAdmobAD : MonoBehaviour
     private const int RewardmaxRetryAttempts = 3;
     #endregion
 
-    public IEnumerator Initialize_Admob(AdSettings adSettings, Platform platform,bool ShowBannerOnLoad, bool AppOpen, bool Testing)
+    #region Initialization
+    public IEnumerator Initialize_Admob(AdSettings adSettings, Platform platform, bool showBannerOnLoad, bool appOpenOnLoad, bool Testing)
     {
         AdmobAndroidLiveID = adSettings.AdmobAndroidID;
         AdmobIosLiveID = adSettings.AdmobIosID;
@@ -84,11 +84,13 @@ public class IAdmobAD : MonoBehaviour
 
         m_Platform = platform;
         EnableTestIds = Testing;
-        ShowAppOpenAdOnLoad = AppOpen;
-        this.ShowBannerOnLoad = ShowBannerOnLoad;
+        ShowAppOpenAdOnLoad = appOpenOnLoad;
+        ShowBannerOnLoad = showBannerOnLoad;
 
+        // get IDs before initializing
         yield return Set_Ads_IDs_Before_Initializing();
 
+        // Initialize the Google Mobile Ads SDK.
         yield return InitializeAdmob();
     }
 
@@ -180,12 +182,14 @@ public class IAdmobAD : MonoBehaviour
         }
         yield return null;
     }
+
+    #endregion Initialization
+    
     /***************************************************************************************************************************************
                                                              Admob Section
- //**************************************************************************************************************************************/
+    //**************************************************************************************************************************************/
 
     #region ADMOB Section
-
 
     #region Admob Banner
 
@@ -305,8 +309,7 @@ public class IAdmobAD : MonoBehaviour
             Debug.LogError("Admob: Medium Rectangle Banner is not ready yet.");
         }
     }
-
-    [ContextMenu("AdmobBannerHide")]
+   
     public void AdmobBannerHide()
     {
         Debug.Log("Admob: Hiding Banner");
@@ -425,8 +428,7 @@ public class IAdmobAD : MonoBehaviour
 
     /// <summary>
     /// show admob interstitial ads
-    /// </summary>
-    [ContextMenu("ShowAdmobInterAds")]
+    /// </summary>    
     public void ShowAdmobInterAds()
     {
         Debug.Log("Admob: Showing Admob Inter Ads");
@@ -491,7 +493,6 @@ public class IAdmobAD : MonoBehaviour
             }
             else
             {
-                //CustomAnalytics.LogEvent("Reward: ADMOB, Ad Unit LOADED");
                 Debug.Log("Admob: Rewarded Ads loaded successfully with response: " + RewardedAds.GetResponseInfo());
                 this.rewardedAd = RewardedAds;
                 RewardretryAttempt = 0; // Reset retry count on success
@@ -518,11 +519,8 @@ public class IAdmobAD : MonoBehaviour
                 // Retry requesting rewarded ads again
                 this.RequestAdmobRewardedAds();
             };
-        });
-        //CustomAnalytics.LogEvent("Reward: ADMOB, Ad Unit Sent");
+        });         
     }
-
-
 
     /// <summary>
     /// show admob rewarded ads
@@ -546,8 +544,6 @@ public class IAdmobAD : MonoBehaviour
         }
         else
         {
-            //showing loading ads popup
-            //  Delegates.ShowLoadingAdsPopup?.Invoke(false);
             Debug.LogError("Admob: Rewarded ad is not ready yet.");
             RewardretryAttempt = 0;
             this.RequestAdmobRewardedAds();
@@ -648,8 +644,7 @@ public class IAdmobAD : MonoBehaviour
             Debug.LogError("Admob: AppOpen ad is null, cannot destroy.");
         }
     }
-
-    [ContextMenu("ShowAppOpenAd")]
+  
     public void ShowAppOpenAd()
     {
         Debug.Log("Admob: Showing AppOpen ads Ads");
@@ -665,7 +660,7 @@ public class IAdmobAD : MonoBehaviour
     //public void ShowAppOpenAdsTrueFalse(bool IsTrue)
     //{
     //    m_ShowAppOpenAd = IsTrue;
-    //    Debug.Log("Show AppOpen Ads True False: " + IsTrue);
+    //    Debug.Log("Show appOpenOnLoad Ads True False: " + IsTrue);
     //}
     #endregion
 
@@ -706,18 +701,9 @@ public class IAdmobAD : MonoBehaviour
         }
     }
 
-    // method for checking if AppOpen ad is ready
+    // method for checking if appOpenOnLoad ad is ready
     public bool IsAppOpenAdReady => appOpenAd != null ? appOpenAd.CanShowAd() : false;
     
     #endregion
 }
 
-[Serializable]
-public struct AdmobIds
-{
-    public string BannerID;
-    public string MedBannerID;
-    public string InterID;
-    public string RewardedID;
-    public string AppOpenID;
-}

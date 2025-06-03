@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class PopupManager : MonoBehaviour
 {
-    [SerializeField] private Popup Prefab;
+    [SerializeField] private FloatingPopup Prefab;
     [SerializeField] private RectTransform ParentRect;
 
     private void Start()
@@ -17,13 +17,13 @@ public class PopupManager : MonoBehaviour
 
     public void ShowPopup(string message, float duration)
     {
-        Popup popup = Instantiate(Prefab, ParentRect);
+        FloatingPopup popup = Instantiate(Prefab, ParentRect);
         popup.SetupMessage(message, duration);
     }
 
     public void ShowPopup(string message)
     {
-        Popup popup = Instantiate(Prefab, ParentRect);
+        FloatingPopup popup = Instantiate(Prefab, ParentRect);
         popup.SetupMessage(message);
     }
 }

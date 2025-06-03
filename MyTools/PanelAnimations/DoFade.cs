@@ -21,7 +21,6 @@ public class DoFade : AnimationBase
         if(ChildList.Count > 0)
             ChildList.ForEach(child => child.gameObject.SetActive(false));
     }
-
     internal override void OnEnable()
     {        
         if (PlayOnEnable)
@@ -47,7 +46,6 @@ public class DoFade : AnimationBase
     {
        OnShow(action);
     }
-
 
     internal override void OnShow(Action action)
     {

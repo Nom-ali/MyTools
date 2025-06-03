@@ -1,82 +1,73 @@
 using UnityEngine.SceneManagement;
-using System.Threading.Tasks;
-using RNA.LoadingManager;
+using MyTools.LoadingManager;
 using System.Collections;
 using UnityEngine.Events;
-using RNA.TextWritter;
 using UnityEngine.UI;
 using UnityEngine;
 using System;
 using MyBox;
 using TMPro;
 
-namespace RNA
+namespace MyTools
 {
     public abstract class UIManagerBase : MonoBehaviour
     {
         #region Variables
         [Foldout("******************** UI Manager ********************", true)]
         [ReadOnly]
-        [SerializeField] internal GameObject currentPanel;
+        protected GameObject currentPanel;
+
+        [Header("---------- Internet ----------")]
+        [SerializeField] internal bool checkInternet = true;
+        internal InternetConnectivity internetConnectivity = null;
 
         [Header("---------- Panels ----------")]
         [SerializeField] internal PanelSettings[] PanelsList;
+        [SerializeField] internal PanelSettings[] IndPanelsList;
 
-        [Header("---------- Select Panel ----------")]
-        [SerializeField] internal PanelSelection AddPanels;
-
-        [Space]
-        [ConditionalField(nameof(AddPanels), false, PanelSelection.MainMenu)]
-        [SerializeField] internal MainMenu mainMenu;
-        //[SerializeField] internal AddListeners _mainMenu;
-
-        [ConditionalField(nameof(AddPanels), false, PanelSelection.Gameplay)]
-        [SerializeField] internal Gameplay gameplay;
-      
-        [ConditionalField(nameof(AddPanels), false, PanelSelection.LevelComplete)]
-        [SerializeField] internal LevelComplete levelComplete;
-       
-        [ConditionalField(nameof(AddPanels), false, PanelSelection.LevelFail)]
-        [SerializeField] internal LevelFail levelFail; 
-       
-        [ConditionalField(nameof(AddPanels), false, PanelSelection.GamePause)]
-        [SerializeField] internal GamePause gamePause;
-     
-        [ConditionalField(nameof(AddPanels), false, PanelSelection.Popup)]
-        [SerializeField] internal Popup popup;
-
-        [ConditionalField(nameof(AddPanels), false, PanelSelection.HintPopup)]
-        [SerializeField] internal HintPopup hintPopup; 
-
-        [ConditionalField(nameof(AddPanels), false, PanelSelection.QuitPanel)]
-        [SerializeField] internal Quit quit;
-        
-        [ConditionalField(nameof(AddPanels), false, PanelSelection.RewardPanel)]
-        [SerializeField] internal RewardADPanel rewardADPanel;
-
-        [Header("---------- Additional UI ----------")]
+        [Header("---------- Coin System ----------")]
+        [SerializeField] internal bool EnableCoinSystem = false;
+        [ConditionalField(nameof(EnableCoinSystem), false)]
         [SerializeField] internal TextMeshProUGUI CoinsText;
 
+
+        private LoadingScript loadingScript = null;
+        private PopupPanel popupPanel = null;
         #endregion
 
+        #region Awake
+        public virtual void Awake()
+        {
+            if(checkInternet)
+            {
+                internetConnectivity = new InternetConnectivity
+                {
+                    checkInternet = this.checkInternet,
+                    OnInternetLost = () => ShowPanel_Ind(PanelType.LoadingPopup),
+                    OnInternetRestored = () => HidePanel_Ind(),
+                };
+            }              
+        }
+        #endregion
 
         #region Start
         internal virtual IEnumerator Start()
         {
+            // Set Frame Rate
             Application.targetFrameRate = 60;
 
-            if (CoinsText)
+            //Get loading panel
+            if (!loadingScript)
             {
-                SaveManager.SaveManager.Currency = new();
-                SaveManager.SaveManager.Currency.ShowDebugLogs = true;
-                SaveManager.SaveManager.Currency.Initialize(SharedVariables.Coins, CoinsText, 10);
+                var loadingPanel = GetPanel(PanelType.LoadingScene);
+                loadingScript = loadingPanel.Panel.GetComponent<LoadingScript>();
             }
 
-            if (AddPanels.HasFlag(PanelSelection.MainMenu))
-                MainMenuSetting();
+            if (EnableCoinSystem && CoinsText)
+            {
+                SaveManager.SaveManager.Currency.Initialize(SharedVariables.Coins, 10, CoinsText);
+            }
 
-            if (AddPanels.HasFlag(PanelSelection.Gameplay))
-                GameplaySetting(); 
             yield return null;
         }
         #endregion
@@ -86,6 +77,10 @@ namespace RNA
         public PanelSettings GetPanel(PanelType panelType)
         {
             return Array.Find(PanelsList, panel => panel.panelType == panelType);
+        }  
+        public PanelSettings GetPanel_Ind(PanelType panelType)
+        {
+            return Array.Find(IndPanelsList, panel => panel.panelType == panelType);
         }
 
         GameObject OldPanel = null;
@@ -113,15 +108,58 @@ namespace RNA
             PanelSettings panel = Array.Find(PanelsList, panels => panels.panelType == panelType);
             Debug.Log($"<color=yellow>Panel: {panel.panelType}</color> is Showing", panel.Panel);
             if (panel.Panel && panel.Panel.TryGetComponent(out animationBase))
+            {
                 animationBase.Show(OnShow);
+                if (animationBase.TryGetComponent(out IInitialization init))
+                    init.Init(this);
+            }
+            
             else
             {
                 panel.Panel?.SetActive(true);
+                if (panel.Panel && panel.Panel.TryGetComponent(out IInitialization init))
+                    init.Init(this);
                 OnShow?.Invoke();
             }
 
             currentPanel = panel.Panel;
             return panel.Panel;
+        }
+
+        internal GameObject ShowPanel_Ind(PanelType panelType, Action OnShow = null)
+        {
+            PanelSettings panel = Array.Find(IndPanelsList, panels => panels.panelType == panelType);
+            Debug.Log($"<color=yellow>Panel: {panel.panelType}</color> is Showing", panel.Panel);
+            if (panel.Panel && panel.Panel.TryGetComponent(out AnimationBase animationBase))
+            {
+                animationBase.Show(OnShow);
+                if(animationBase.TryGetComponent(out IInitialization init))
+                    init.Init(this);
+            }
+            else
+            {
+                panel.Panel?.SetActive(true);
+                if(panel.Panel && panel.Panel.TryGetComponent(out IInitialization init))
+                    init.Init(this);
+                OnShow?.Invoke();
+            }
+            return panel.Panel;
+        }
+
+        internal void HidePanel_Ind(Action OnHide = null)
+        {
+            PanelSettings[] activePanels = Array.FindAll(IndPanelsList, panels => panels.Panel.activeInHierarchy == true);
+            foreach (var item in activePanels)
+            {
+                Debug.Log($"<color=yellow> Panel: {item.panelType}</color> is hiding", item.Panel);
+                if (item.Panel && item.Panel.TryGetComponent(out AnimationBase animationBase))
+                    animationBase.Hide(OnHide);
+                else
+                {
+                    item.Panel?.SetActive(false);
+                    OnHide?.Invoke();
+                }
+            }
         }
 
         public void HidePanel(PanelType panelType, Action OnHide = null)
@@ -134,7 +172,7 @@ namespace RNA
                         animationBase.Hide(OnHide);
                     else
                         PanelsList[i].Panel?.SetActive(false);
-                    Debug.Log($"Setting ON Panel: {PanelsList[i].Panel.name}", PanelsList[i].Panel);
+                    Debug.Log($"Setting OFF Panel: {PanelsList[i].Panel.name}", PanelsList[i].Panel);
                 }
                 else if(PanelsList[i].Panel && PanelsList[i].Panel.activeSelf)
                 {
@@ -159,33 +197,7 @@ namespace RNA
             if (currentPanel.name.ToLower().Contains("genericpopup"))
                 currentPanel = OldPanel;
         }
-
-        /// <summary>
-        /// Show Hint Popup 
-        /// </summary>
-        /// <param name="hintSprite">Sprite, that will be shown in Popup</param>
-        /// <param name="autoCloseDelay">Hint Popup Auto Closes after given time</param>
-        /// <param name="title">title (Optional)</param>
-        public async void ShowHintPopup(Sprite hintSprite, float autoCloseDelay = 4, string title = "")
-        {
-            if (hintSprite == null)
-                return;
-
-            PanelSettings panelSetting = Array.Find(PanelsList, panel => panel.panelType == PanelType.HintPopup);
-            if(panelSetting.Panel != null)
-            {
-                if (panelSetting.Panel.TryGetComponent(out AnimationBase animationBase))
-                    animationBase.Show();
-
-                if(title.NotNullOrEmpty())
-                    hintPopup.Title.text = title;
-
-                hintPopup.HintImage.sprite = hintSprite;
-
-                await Task.Delay((int)(autoCloseDelay * 1000));
-                animationBase.Hide();
-            }
-        }
+                     
 
         public GameObject ShowPanel(PanelType panelType)
         {
@@ -201,68 +213,29 @@ namespace RNA
         {
             return Show_Panel(panelType, OnShow: OnComplete);
         }
-
-        public void AssignPanelSetting(PanelType panelType, Action OnComplete = null)
-        {
-            switch (panelType)
-            {
-
-                case PanelType.MainMenu:
-                    MainMenuSetting();
-                    break;
-
-                case PanelType.Gameplay:
-                    GameplaySetting();
-                    break;
-
-                case PanelType.LevelComplete:
-                    LevelCompleteSetting();
-                    break;
-
-                case PanelType.LevelFail:
-                    LevelFailSetting();
-                    break; 
-                
-                case PanelType.GamePause:
-                    GamePasueSetting();
-                    break;   
-                
-                case PanelType.QuitPanel:
-                    QuitSetup();
-                    break;    
-
-                case PanelType.RewardPanel:
-                    RewardAdPanelSetup();
-                    break;
-            }
-
-            //action on Complete
-            OnComplete?.Invoke();
-        }
-
         #endregion
 
 
         #region General 
         internal void Restart(bool fadeLoadingScreen = false)
         {
-            if (LoadingScript.Instance)
-                LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex, fadeLoadingScreen);
+            if (loadingScript)
+                loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex, fadeLoadingScreen);
             else
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         internal void GotoHome(bool fadeLoadingScreen = false)
         {
-                if (LoadingScript.Instance)
-                    LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, fadeLoadingScreen);
+                if (loadingScript)
+                    loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, fadeLoadingScreen);
                 else
                     SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex - 1);
         }
         void GoToGamePlay(bool fadeLoadingScreen = false)
         {
-            if (LoadingScript.Instance)
-                LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, fadeLoadingScreen);
+            if (loadingScript)
+                loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, fadeLoadingScreen);
             else
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
         }
@@ -286,9 +259,52 @@ namespace RNA
         public string OpenPrivacyPolicy()
         {
             if (Application.platform == RuntimePlatform.Android)
-                return SharedVariables.PrivacyPolicyLink;
+                return SharedVariables.AndroidPrivacyPolicyLink;
             else
                 return SharedVariables.IOSPrivacyPolicyLink;
+        }
+        #endregion
+
+
+        #region Loading
+
+        internal void FakeLoadScene(ButtonActionSimple onComplete)
+        {
+            if (loadingScript.TryGetComponent(out AnimationBase animation))
+                animation.Show();
+            else
+                loadingScript.gameObject.SetActive(true);
+
+            loadingScript?.FakeLoading(this, onComplete);
+        } 
+        
+        internal void FakeLoadScene(Action onComplete)
+        {              
+            loadingScript?.FakeLoading(onComplete);
+        }
+
+        internal void LoadScene<T>(T scene)
+        {            
+            if (loadingScript)
+            {
+                if (typeof(T) == typeof(int))
+                {
+                    loadingScript.LoadScene((int)(object)scene);
+                }
+                else if (typeof(T) == typeof(string))
+                {
+                    loadingScript.LoadScene((string)(object)scene);
+                }
+                else
+                {
+                    Debug.LogError("Invalid scene type");
+                }
+            }
+        }
+
+        internal void ManualFadeLoading()
+        {
+            loadingScript.FadeOutLoadingScreen();
         }
         #endregion
 
@@ -317,12 +333,13 @@ namespace RNA
                 onClick = onButton.LoadScene switch
                 {
                     LoadSceneBy.Restart => () => Restart(onButton.ManuallyFadeLoading),
-                    LoadSceneBy.LoadNextScene => () => LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, onButton.ManuallyFadeLoading),
-                    LoadSceneBy.loadPreviousScene => () => LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.LoadNextScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.loadPreviousScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, onButton.ManuallyFadeLoading),
                     LoadSceneBy.MainMenu => () => GotoHome(onButton.ManuallyFadeLoading),
                     LoadSceneBy.Gameplay => () => GoToGamePlay(onButton.ManuallyFadeLoading),
-                    LoadSceneBy.ByName => () => LoadingScript.Instance.LoadingAsync(onButton.SceneName, onButton.ManuallyFadeLoading),
-                    LoadSceneBy.ByID => () => LoadingScript.Instance.LoadingAsync(onButton.SceneID, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.ByName => () => loadingScript.LoadingAsync(onButton.SceneName, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.ByID => () => loadingScript.LoadingAsync(onButton.SceneID, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.SceneAsset => () => loadingScript.LoadingAsync(onButton.m_Scene.SceneName, onButton.ManuallyFadeLoading),
                     _ => null
                 };
             }
@@ -331,8 +348,9 @@ namespace RNA
                 onClick = onButton.OnBtnClick switch
                 {
                     OnClickAction.ShowPanel => () => ShowPanel(onButton.Panel),
-                    //OnClickAction.HidePanel => () => HidePanel(onButton.Panel),
+                    OnClickAction.ShowPanelInd => () => ShowPanel_Ind(onButton.Panel),
                     OnClickAction.HideCurrentPanel => () => HideCurrentPanel(),
+                    OnClickAction.HideIndPanel => () => HidePanel_Ind(),
                     OnClickAction.ExitGame => () => Application.Quit(),
                     OnClickAction.AddClickEvent => () => onButton.OnClickEvent?.Invoke(),
                     _ => null
@@ -341,7 +359,7 @@ namespace RNA
 
             onButton.OnClickButton?.Invoke();
             onClick?.Invoke();
-            AudioPlayer.instance?.PlayButtonSound(); 
+            AudioPlayer.instance?.PlayButtonSound();
         }
 
         public void OnButtonClicked(ButtonActionSimple onButton)
@@ -363,12 +381,12 @@ namespace RNA
                 onClick = onButton.LoadScene switch
                 {
                     LoadSceneBy.Restart => () => Restart(),
-                    LoadSceneBy.LoadNextScene => () => LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1),
-                    LoadSceneBy.loadPreviousScene => () => LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1),
+                    LoadSceneBy.LoadNextScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1),
+                    LoadSceneBy.loadPreviousScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1),
                     LoadSceneBy.MainMenu => () => GotoHome(),
                     LoadSceneBy.Gameplay => () => GoToGamePlay(),
-                    LoadSceneBy.ByName => () => LoadingScript.Instance.LoadingAsync(onButton.SceneName),
-                    LoadSceneBy.ByID => () => LoadingScript.Instance.LoadingAsync(onButton.SceneID),
+                    LoadSceneBy.ByName => () => loadingScript.LoadingAsync(onButton.SceneName),
+                    LoadSceneBy.ByID => () => loadingScript.LoadingAsync(onButton.SceneID),
                     _ => null
                 };
             }
@@ -377,146 +395,41 @@ namespace RNA
                 onClick = onButton.OnBtnClick switch
                 {
                     OnClickAction.ShowPanel => () => ShowPanel(onButton.Panel),
-                    //OnClickAction.HidePanel => () => HidePanel(onButton.Panel),
+                    OnClickAction.ShowPanelInd => () => ShowPanel_Ind(onButton.Panel),
                     OnClickAction.HideCurrentPanel => () => HideCurrentPanel(),
+                    OnClickAction.HideIndPanel=> () => HidePanel_Ind(),
                     OnClickAction.ExitGame => () => Application.Quit(),
                     OnClickAction.AddClickEvent => () => onButton.OnClickEvent?.Invoke(),
                     _ => null
                 };
-            }
+            } 
 
             onButton.OnClickButton?.Invoke();
             onClick?.Invoke();
             AudioPlayer.instance?.PlayButtonSound();
         }
-
         #endregion
-
-
-        #region Panels Assignements
-        public virtual void MainMenuSetting()
-        {
-            mainMenu.Buttons.Init(this);
-
-        }
-
-
-        public virtual void GameplaySetting()
-        {
-            gameplay.Buttons.Init(this);
-         
-        }
-           
-        internal virtual void LevelCompleteSetting()
-        {
-            levelComplete.Buttons.Init(this);
-             }  
-        
-        void LevelFailSetting()
-        {
-            levelFail.Buttons.Init(this);
-            
-        }
-
-
-        void GamePasueSetting()
-        {
-            gamePause.Buttons.Init(this);           
-        }
-
-        void QuitSetup()
-        {
-            quit.Buttons.Init(this);
-           
-        }
-
-        void RewardAdPanelSetup()
-        {
-            //if (rewardADPanel.YesBtn.button)
-            //{
-            //    rewardADPanel.YesBtn.button.onClick.RemoveAllListeners();
-            //    rewardADPanel.YesBtn.button.onClick.AddListener(() =>
-            //    {
-            //        OnButtonClicked(rewardADPanel.YesBtn);
-            //    });
-            //}  
-            rewardADPanel.Buttons.Init(this);
-           
-        }
-
-        #endregion
-
+                                                                
 
         #region Show Popup
-        public async void ShowPopup(PopupSetting popupSetting)
+
+        internal void ShowPopup(PopupSetting popupSetting)
         {
-            popup.FirstBtn.gameObject.SetActive(false);
-            popup.SecondBtn.gameObject.SetActive(false);
+            if (!popupPanel)
+            {
+                var popup = GetPanel_Ind(PanelType.Popup);
+                popupPanel = popup.Panel.GetComponent<PopupPanel>();
+            }
 
-            //setting tile
-            if (popup.Title)
-                popup.Title.text = popupSetting.Title;
-
-            //showing panel
-            ShowPanel(PanelType.Popup, false);
-
-            // chechk if popup is already active ir not
-            while (!popup.Message.gameObject.activeInHierarchy)
-                await Task.Yield();
-
-            //writing text letter by letter
-            if (popup.Message)
-                popup.Message.WriteLetter(popupSetting.Message, popupSetting.TextDuration)
-                    .OnComplete(async () =>
-                        {
-                            //enabling or disabling btn
-                            popup.FirstBtn.gameObject.SetActive(popupSetting.EnableFirstBtn);
-                            popup.SecondBtn.gameObject.SetActive(popupSetting.EnableSecondBtn);
-
-                            // assigning 1st btn actions
-                            if (popupSetting.EnableFirstBtn && popup.FirstBtn)
-                            {
-                                if (popup.FirstBtn.transform.GetChild(0).TryGetComponent(out Text text))
-                                    text.text = popupSetting.FirstBtnText;
-           
-                                popup.FirstBtn.onClick.RemoveAllListeners();
-                                popup.FirstBtn.onClick.AddListener(() =>
-                                {
-                                    AudioPlayer.instance?.PlayButtonSound();
-                                    popupSetting.FirstBtnAction?.Invoke();
-                                    OnButtonClicked(popupSetting.m_FirstBtnAction);
-                                    HideCurrentPanel();
-                                });
-                            }
-
-                            // assigning 2nd btn actions
-                            if (popupSetting.EnableSecondBtn && popup.SecondBtn)
-                            {
-                                if (popupSetting.EnableSecondBtn &&  popup.SecondBtn.transform.GetChild(0).TryGetComponent(out Text text))
-                                  text.text = popupSetting.SecondBtnText;
-                            
-                                popup.SecondBtn.onClick.RemoveAllListeners();
-                                popup.SecondBtn.onClick.AddListener(() =>
-                                {
-                                    AudioPlayer.instance?.PlayButtonSound();
-                                    popupSetting.SecondBtnAction?.Invoke();
-                                    OnButtonClicked(popupSetting.m_SecondBtnAction);
-                                    HideCurrentPanel();
-                                });
-                            }
-                            // On Complete Action callback
-                            popupSetting.OnComplete?.Invoke();
-
-                            if (popupSetting.AutoClosePopup)
-                            {
-                                await Task.Delay((int)((popupSetting.TextDuration + popupSetting.AutoCloseDelay) * 1000));
-                                HideCurrentPanel();
-                            }
-                        })
-                    .Start();   // Starting method from here
-
-
-        }
+            if (popupPanel)
+            {
+                popupPanel.ShowPopup(popupSetting, this);
+            }
+            else
+            {
+                Debug.LogError("PopupPanel is not assigned or found in the scene.");
+            }
+        }      
         #endregion
     }
 
@@ -524,30 +437,8 @@ namespace RNA
     [Serializable]
     public enum PanelType
     {
-        None, Loading, MainMenu, ModeSelection, Customization, LevelSelection, MMSetting, GPSetting, Gameplay, GamePause, Restart, LevelComplete, LevelFail, Popup, QuitPanel, Warning, RewardPanel, HintPopup, AnimalPopup
-    }    
-    
-    [Serializable, Flags]
-    public enum PanelSelection
-    {
-        None                    = 0, 
-        Loading                 = 1 << 0,
-        MainMenu                = 1 << 1,
-        ModeSelection           = 1 << 2,
-        Customization           = 1 << 3,
-        LevelSelection          = 1 << 4,
-        MMSetting               = 1 << 5,
-        GPSetting               = 1 << 6,
-        Gameplay                = 1 << 7,
-        GamePause               = 1 << 8,
-        Restart                 = 1 << 9,
-        LevelComplete           = 1 << 10,
-        LevelFail               = 1 << 11,
-        Popup                   = 1 << 12,
-        QuitPanel               = 1 << 13,
-        Warning                 = 1 << 14,
-        RewardPanel             = 1 << 15,
-        HintPopup               = 1 << 16,
+        None, LoadingScene, LoadingPopup, MainMenu, ModeSelection, Customization, LevelSelection, Setting, GPSetting, Gameplay,
+        GamePause, Restart, LevelComplete, LevelFail, Popup, QuitPanel, Warning, RewardPanel
     }
 
     [Serializable]
@@ -566,8 +457,10 @@ namespace RNA
         ExitGame,
         ShowPanel,
         LoadScene,
+        ShowPanelInd,
         AddClickEvent,
         HideCurrentPanel,
+        HideIndPanel,
     }
 
     [Serializable]
@@ -585,7 +478,8 @@ namespace RNA
         MainMenu,
         Gameplay,
         ByName,
-        ByID
+        ByID,
+        SceneAsset
     }
 
     [Serializable]
@@ -595,8 +489,10 @@ namespace RNA
         [ConditionalField(nameof(button))]
         public bool Interactable = true;
         [ConditionalField(nameof(button))]
+        public bool AdsOnClick = false;
+        [ConditionalField(nameof(button))]
         public OnClickAction OnBtnClick;
-        [ConditionalField(nameof(OnBtnClick), false, OnClickAction.ShowPanel /*, OnClickAction.HidePanel*/)]
+        [ConditionalField(nameof(OnBtnClick), false, OnClickAction.ShowPanel, OnClickAction.ShowPanelInd)]
         public PanelType Panel = PanelType.None;
         //[ConditionalField(nameof(Panel), false, PanelType.None)]
         //public GameObject PanelObject;
@@ -606,6 +502,8 @@ namespace RNA
         public string SceneName = "";
         [ConditionalField(nameof(LoadScene), false, LoadSceneBy.ByID)]
         public int SceneID = -1;
+        [ConditionalField(nameof(LoadScene), false, LoadSceneBy.SceneAsset)]
+        public SceneReference m_Scene;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.LoadScene)]
         public bool ManuallyFadeLoading = false;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.URL)]
@@ -621,7 +519,7 @@ namespace RNA
     public struct ButtonActionSimple
     {
         public OnClickAction OnBtnClick;
-        [ConditionalField(nameof(OnBtnClick), false, OnClickAction.ShowPanel)]
+        [ConditionalField(nameof(OnBtnClick), false, OnClickAction.ShowPanel, OnClickAction.ShowPanelInd)]
         public PanelType Panel;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.LoadScene)]
         public LoadSceneBy LoadScene;
@@ -703,46 +601,6 @@ namespace RNA
         public TextMeshProUGUI Message;
         public Button FirstBtn;
         public Button SecondBtn;
-    }
-
-    [Serializable]
-    public class PopupSetting
-    {
-        public string Title = "";
-        public string Message = "";
-        public float TextDuration = 1;
-        public bool AutoClosePopup = false;
-        [ConditionalField(nameof(AutoClosePopup), false)]
-        public float AutoCloseDelay = 1f;
-        public bool EnableFirstBtn = true;
-        public string FirstBtnText = "OK";
-        public Action FirstBtnAction = null;
-        [SerializeField] internal protected ButtonActionSimple m_FirstBtnAction;
-        public bool EnableSecondBtn = false;
-        public string SecondBtnText = "";
-        public Action SecondBtnAction = null;
-        [SerializeField] internal protected ButtonActionSimple m_SecondBtnAction;
-        public bool AdsIcon = false;
-        public Action OnComplete = null;
-
-        // Parameterless constructor
-        public PopupSetting()
-        {
-        }
-
-        public PopupSetting(string message, string title = "", string firstBtnText = "", Action firstAction = null,
-            bool enableSecondbtn = false , string secondBtnText = "", Action secondAction = null, bool adsIcon = false, Action onComplete = null)
-        {
-            Title = title;
-            Message = message;
-            FirstBtnText = firstBtnText;
-            FirstBtnAction = firstAction;
-            EnableSecondBtn = enableSecondbtn;
-            SecondBtnText = secondBtnText;
-            SecondBtnAction = secondAction;
-            AdsIcon = adsIcon;
-            OnComplete = onComplete;
-        }
     }
     #endregion
 }

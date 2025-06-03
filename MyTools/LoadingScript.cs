@@ -1,4 +1,3 @@
-using DG.Tweening;
 using MyBox;
 using System;
 using System.Collections;
@@ -6,13 +5,13 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace RNA.LoadingManager
+namespace MyTools.LoadingManager
 {
     public class LoadingScript : MonoBehaviour
     {
         public static LoadingScript Instance;
 
-        [SerializeField] private CanvasGroup Canvas;
+         private AnimationBase LoadingPanel;
 
         [SerializeField] private FillBarType FillBarType = FillBarType.None;
         [ConditionalField(nameof(FillBarType), false, FillBarType.FillImage)]
@@ -29,25 +28,24 @@ namespace RNA.LoadingManager
         [Space]
         [SerializeField] private GameObject[] DotList;
 
-        private void Awake()
-        {
-            if (Instance == null)
-            {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
-
-            Canvas.alpha = 0.0f;
-        }
-        // Start is called before the first frame update
         void Start()
         {
-            LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
             StartCoroutine(AnimateDots());
+        }
+
+        private void Show()
+        {
+            if(LoadingPanel == null)
+            {
+                LoadingPanel = GetComponent<AnimationBase>();
+                if (LoadingPanel == null)
+                {
+                    Debug.LogError("LoadingPanel AnimationBase is not assigned or found.");
+                    return;
+                }
+            }
+
+            LoadingPanel.Show();
         }
 
         public void LoadScene(int sceneIndex)
@@ -64,7 +62,6 @@ namespace RNA.LoadingManager
             if (FillBar) FillBar.fillAmount = 0;
             if (Slider) Slider.value = 0f;
 
-            yield return FadeIn(FadeDuration);
             float TimeElapse = 0;
             while (TimeElapse < Duration)
             {
@@ -94,14 +91,11 @@ namespace RNA.LoadingManager
 
         IEnumerator LoadSceneAsync(int sceneIndex, bool manuallyFade, float delay)
         {
-            //AdsManager.instance?.ShowBigBannerAds();
-            //AudioPlayer.instance?.StopMusic();
+            AdsManager.Instance?.ShowBigBannerAds();
+            AudioPlayer.instance?.StopMusic();
 
             if (FillBar) FillBar.fillAmount = 0;
             if (Slider) Slider.value = 0f;
-            //m_FadeScreen = manuallyFade;
-
-            yield return FadeIn(FadeDuration);
 
             float value = 0;
             float oldDuration = delay;
@@ -109,8 +103,6 @@ namespace RNA.LoadingManager
             {
                 delay -= Time.deltaTime;
                 value = (oldDuration - delay) / oldDuration * 0.5f;
-                //value = (oldDuration - (delay / oldDuration)) / oldDuration * 2;
-                //Debug.Log("New Value: " + value);
                 Filler(value);
                 yield return null;
             }
@@ -123,7 +115,6 @@ namespace RNA.LoadingManager
             while (!operation.isDone && operation.progress >= value)
             {
                 float progress = Mathf.Clamp01(operation.progress / 0.9f);
-                //Debug.Log("New Value progress: " + progress);
                 Filler(progress);
                 if (operation.progress >= 0.9f)
                 {
@@ -134,10 +125,50 @@ namespace RNA.LoadingManager
             }
             if (!manuallyFade)
             {
-                //AdsManager.instance?.DestroyBigBanner();
+                AdsManager.Instance?.DestroyBigBanner();
                 yield return FadeOut(FadeDuration);
-                //m_FadeScreen = false;
             }
+        }
+
+        internal void FakeLoading(Action onComplete)
+        {
+            CallFakeLoading(onComplete);
+        }
+
+        internal void FakeLoading(UIManagerBase uIManager, ButtonActionSimple onComplete)
+        {
+            CallFakeLoading(uIManager, onComplete);
+        }
+            
+        internal void CallFakeLoading(Action onComplete)
+        {
+           
+            StartCoroutine(_FakeLoading(null, new(), onComplete));
+        }
+        
+        internal void CallFakeLoading(UIManagerBase uIManager, ButtonActionSimple onComplete)
+        {
+            StartCoroutine(_FakeLoading(uIManager, onComplete, null));
+        }
+
+        private IEnumerator _FakeLoading(UIManagerBase uIManager, ButtonActionSimple onComplete, Action action)
+        {
+            if (FillBar) FillBar.fillAmount = 0;
+            if (Slider) Slider.value = 0f;
+
+            float TimeElapse = 0;
+            while (TimeElapse < Duration)
+            {
+                TimeElapse += Time.unscaledDeltaTime;
+                float value = TimeElapse / Duration;
+                Filler(value);
+                yield return null;
+            }
+            yield return new WaitForSeconds(0.1f);
+
+            // OnComplete Ation
+            action?.Invoke();
+            uIManager?.OnButtonClicked(onComplete);
         }
 
         void Filler(float value)
@@ -157,41 +188,21 @@ namespace RNA.LoadingManager
             }
         }
 
-
         public void FadeOutLoadingScreen(float duration = 1)
         {
-            //AdsManager.instance?.DestroyBigBanner();
+            AdsManager.Instance?.DestroyBigBanner();
             StartCoroutine(FadeOut(duration));
-            //m_FadeScreen = false;
         }
 
         IEnumerator FadeIn(float duration = 1)
         {
-            if (Canvas & Canvas.gameObject.activeInHierarchy == false)
-                Canvas.gameObject.SetActive(true);
-
-            Canvas.alpha = 0;
-            Canvas.DOFade(1, duration).SetUpdate(true).OnComplete(() =>
-            {
-                Canvas.alpha = 1;
-            });
-            yield return null;
-
+            yield return new WaitForSeconds(duration);
         }
 
         IEnumerator FadeOut(float duration = 1)
         {
-            if (Canvas & Canvas.gameObject.activeInHierarchy == false)
-                Canvas.gameObject.SetActive(true);
-
-            Canvas.alpha = 1;
-            Canvas.DOFade(0, duration).SetUpdate(true).OnComplete(() =>
-            {
-                Canvas.alpha = 0;
-                Canvas.gameObject.SetActive(false);
-                AudioPlayer.instance?.PlayBGMusic(true);
-            });
-            yield return null;
+            LoadingPanel.Hide();
+            yield return new WaitForSeconds(duration);
         }
 
         IEnumerator AnimateDots()
@@ -215,7 +226,7 @@ namespace RNA.LoadingManager
     }
 }
 
-[System.Serializable]
+[Serializable]
 public enum FillBarType
 {
     None, FillImage, Slider

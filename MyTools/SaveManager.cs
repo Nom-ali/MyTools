@@ -3,14 +3,13 @@
 /// make sure you import this lib
 /// you can add by name from package manager "com.unity.nuget.newtonsoft-json"
 
-using System;
-using System.IO;
-using UnityEngine;
 using Newtonsoft.Json;
-using System.Collections.Generic;
+using UnityEngine;
+using System.IO;
+using System;
 using TMPro;
 
-namespace RNA.SaveManager
+namespace MyTools.SaveManager
 {
     public static class SaveManager
     {

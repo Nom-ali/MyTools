@@ -3,7 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace RNA.Dialogue
+namespace MyTools.Dialogue
 {
     public class DialogueTrigger : MonoBehaviour
     {

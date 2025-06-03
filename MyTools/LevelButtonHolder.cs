@@ -1,5 +1,5 @@
-using RNA.LoadingManager;
-using RNA.SaveManager;
+using MyTools.LoadingManager;
+using MyTools.SaveManager;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
