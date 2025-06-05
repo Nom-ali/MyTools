@@ -26,11 +26,7 @@ public class UIManager : UIManagerBase
     internal override IEnumerator Start()
     {
         yield return base.Start();
-
-        StartCoroutine(internetConnectivity.CheckInternet());
-
-        FakeLoadScene(new ButtonActionSimple() { OnBtnClick = OnClickAction.ShowPanel, Panel = PanelType.MainMenu});
-
+        FakeLoadScene(new ButtonActionSimple() { OnBtnClick = OnClickAction.ShowPanel, Panel = PanelType.MainMenu });
     }
    
     internal IEnumerator ShowLoadingPopup(float disableAfter = 3)
@@ -41,4 +37,23 @@ public class UIManager : UIManagerBase
         HidePanel_Ind();
         yield return new WaitUntil(() => GetPanel_Ind(PanelType.LoadingPopup).Panel.activeSelf == false);
     }
+
+    public void GamePause()
+    {
+        GameManager.Instance.gameStatus.SetGameStatus(GameStatus.GameState.GamePause);
+    }
+
+    public void GameUnPause()
+    {
+        GameManager.Instance.gameStatus.SetGameStatus(GameStatus.GameState.None);
+    }
+
+    public void Restore_purchase()
+    {
+        MyTools.SaveManager.SaveManager.Prefs.SetBool(SharedVariables.RemoveAds, true);
+        if (AdsManager.Instance)
+            AdsManager.Instance.DestroyBanner();
+    }
+
+   
 }

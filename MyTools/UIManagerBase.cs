@@ -25,6 +25,7 @@ namespace MyTools
         [SerializeField] internal PanelSettings[] PanelsList;
         [SerializeField] internal PanelSettings[] IndPanelsList;
 
+
         [Header("---------- Coin System ----------")]
         [SerializeField] internal bool EnableCoinSystem = false;
         [ConditionalField(nameof(EnableCoinSystem), false)]
@@ -59,7 +60,7 @@ namespace MyTools
             //Get loading panel
             if (!loadingScript)
             {
-                var loadingPanel = GetPanel(PanelType.LoadingScene);
+                var loadingPanel = GetPanel_Ind(PanelType.LoadingScene);
                 loadingScript = loadingPanel.Panel.GetComponent<LoadingScript>();
             }
 
@@ -217,27 +218,36 @@ namespace MyTools
 
 
         #region General 
-        internal void Restart(bool fadeLoadingScreen = false)
+        internal void Restart(bool fadeLoadingScreen = false, ButtonActionSimple onComplete = null)
         {
             if (loadingScript)
-                loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex, fadeLoadingScreen);
+                loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex, fadeLoadingScreen, onComplete);
             else
+            {
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+                OnButtonClicked(onComplete);
+            }
         }
 
-        internal void GotoHome(bool fadeLoadingScreen = false)
-        {
-                if (loadingScript)
-                    loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, fadeLoadingScreen);
-                else
-                    SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex - 1);
-        }
-        void GoToGamePlay(bool fadeLoadingScreen = false)
+        internal void GotoHome(bool fadeLoadingScreen = false, ButtonActionSimple onComplete = null)
         {
             if (loadingScript)
-                loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, fadeLoadingScreen);
+                loadingScript.LoadingAsync(SharedVariables.MainMenu, fadeLoadingScreen, onComplete);
+            else 
+            {
+                SceneManager.LoadScene(SharedVariables.MainMenu);
+                OnButtonClicked(onComplete);
+            } 
+        }
+        void GoToGamePlay(bool fadeLoadingScreen = false, ButtonActionSimple onComplete = null)
+        {
+            if (loadingScript)
+                loadingScript.LoadingAsync(SharedVariables.Gameplay, fadeLoadingScreen, onComplete);
             else
-                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+            {
+                SceneManager.LoadScene(SharedVariables.Gameplay);
+                OnButtonClicked(onComplete);
+            }
         }
 
         public string OpenMoreGames()
@@ -270,12 +280,7 @@ namespace MyTools
 
         internal void FakeLoadScene(ButtonActionSimple onComplete)
         {
-            if (loadingScript.TryGetComponent(out AnimationBase animation))
-                animation.Show();
-            else
-                loadingScript.gameObject.SetActive(true);
-
-            loadingScript?.FakeLoading(this, onComplete);
+            loadingScript?.FakeLoading(onComplete);
         } 
         
         internal void FakeLoadScene(Action onComplete)
@@ -302,9 +307,9 @@ namespace MyTools
             }
         }
 
-        internal void ManualFadeLoading()
+        internal void ManualFadeLoading(ButtonActionSimple onComplete = null)
         {
-            loadingScript.FadeOutLoadingScreen();
+            loadingScript.FadeOutLoadingScreen(onComplete: onComplete);
         }
         #endregion
 
@@ -332,14 +337,14 @@ namespace MyTools
             {
                 onClick = onButton.LoadScene switch
                 {
-                    LoadSceneBy.Restart => () => Restart(onButton.ManuallyFadeLoading),
-                    LoadSceneBy.LoadNextScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, onButton.ManuallyFadeLoading),
-                    LoadSceneBy.loadPreviousScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, onButton.ManuallyFadeLoading),
-                    LoadSceneBy.MainMenu => () => GotoHome(onButton.ManuallyFadeLoading),
-                    LoadSceneBy.Gameplay => () => GoToGamePlay(onButton.ManuallyFadeLoading),
-                    LoadSceneBy.ByName => () => loadingScript.LoadingAsync(onButton.SceneName, onButton.ManuallyFadeLoading),
-                    LoadSceneBy.ByID => () => loadingScript.LoadingAsync(onButton.SceneID, onButton.ManuallyFadeLoading),
-                    LoadSceneBy.SceneAsset => () => loadingScript.LoadingAsync(onButton.m_Scene.SceneName, onButton.ManuallyFadeLoading),
+                    LoadSceneBy.Restart => () => Restart(onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.LoadNextScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.loadPreviousScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.MainMenu => () => GotoHome(onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.Gameplay => () => GoToGamePlay(onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.ByName => () => loadingScript.LoadingAsync(onButton.SceneName, onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.ByID => () => loadingScript.LoadingAsync(onButton.SceneID, onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.SceneAsset => () => loadingScript.LoadingAsync(onButton.m_Scene.SceneName, onButton.ManuallyFadeLoading, onButton.onComplete),
                     _ => null
                 };
             }
@@ -365,6 +370,9 @@ namespace MyTools
         public void OnButtonClicked(ButtonActionSimple onButton)
         {
             Action onClick = null;
+            if (onButton == null)
+                return;
+
             if (onButton.OnBtnClick.Equals(OnClickAction.URL))
             {
                 string url = onButton.URL switch
@@ -513,10 +521,11 @@ namespace MyTools
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.AddClickEvent)]
         public UnityEvent OnClickEvent = null;
         public Action OnClickButton = null;
+        public ButtonActionSimple onComplete = null;
     }  
     
     [Serializable]
-    public struct ButtonActionSimple
+    public class ButtonActionSimple
     {
         public OnClickAction OnBtnClick;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.ShowPanel, OnClickAction.ShowPanelInd)]
@@ -532,75 +541,6 @@ namespace MyTools
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.AddClickEvent)]
         public UnityEvent OnClickEvent;
         public Action OnClickButton;
-    }
-
-
-    [Serializable]
-    public struct Gameplay
-    {
-        [Space]
-        public AddListeners Buttons;
-    }
-    
-    [Serializable]
-    public struct MainMenu
-    {
-        public AddListeners Buttons;
-    }
-    
-    [Serializable]
-    public struct LevelComplete
-    {
-        [Space]
-        public AddListeners Buttons;
-       
-    }
-         
-    [Serializable]
-    public struct LevelFail
-    {
-        [Space]
-        public AddListeners Buttons;
     }  
-    
-    [Serializable]
-    public struct GamePause
-    {
-        [Space]
-        public AddListeners Buttons;
-    }
-
-    [Serializable]
-    public struct Quit
-    {
-        [Space]
-        public AddListeners Buttons;
-    }
-
-    [Serializable]
-    public struct RewardADPanel
-    {
-        [Space]
-        public AddListeners Buttons;
-    }  
-    
-    [Serializable]
-    public struct HintPopup
-    {
-        [Space]
-        public AddListeners Buttons;
-        public Text Title;
-        public Image HintImage;
-    }
-
-    [Serializable]
-    public struct Popup
-    {
-        [Space]
-        public TextMeshProUGUI Title;
-        public TextMeshProUGUI Message;
-        public Button FirstBtn;
-        public Button SecondBtn;
-    }
     #endregion
 }

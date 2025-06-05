@@ -48,16 +48,18 @@ namespace MyTools.LoadingManager
             LoadingPanel.Show();
         }
 
-        public void LoadScene(int sceneIndex)
+        public void LoadScene(int sceneIndex, ButtonActionSimple onComplete = null)
         {
-            StartCoroutine(Load_Scene(sceneIndex));
+            Show();
+            StartCoroutine(Load_Scene(sceneIndex, onComplete));
         }
-        public void LoadScene(string sceneName)
+        public void LoadScene(string sceneName, ButtonActionSimple onComplete = null)
         {
+            Show();
             var sceneID = SceneUtility.GetBuildIndexByScenePath(sceneName);
-            StartCoroutine(Load_Scene(sceneID));
+            StartCoroutine(Load_Scene(sceneID, onComplete));
         }
-        IEnumerator Load_Scene(int sceneIndex)
+        IEnumerator Load_Scene(int sceneIndex, ButtonActionSimple onComplete)
         {
             if (FillBar) FillBar.fillAmount = 0;
             if (Slider) Slider.value = 0f;
@@ -76,21 +78,25 @@ namespace MyTools.LoadingManager
             SceneManager.LoadScene(sceneIndex);
 
             yield return new WaitForSeconds(.3f);
+            UIManager.Instance.OnButtonClicked(onComplete);
             yield return FadeOut(0.1f);
         }
 
-        public void LoadingAsync(int sceneIndex, bool manuallyFade = false)
+        public void LoadingAsync(int sceneIndex, bool manuallyFade = false, ButtonActionSimple onComplete = null)
         {
-            StartCoroutine(LoadSceneAsync(sceneIndex, manuallyFade, Duration));
+            Show();
+            StartCoroutine(LoadSceneAsync(sceneIndex, manuallyFade, Duration, onComplete));
         }
-        public void LoadingAsync(string sceneName, bool manuallyFade = false)
+        public void LoadingAsync(string sceneName, bool manuallyFade = false, ButtonActionSimple onComplete = null)
         {
+            Show();
             var sceneID = SceneUtility.GetBuildIndexByScenePath(sceneName);
-            StartCoroutine(LoadSceneAsync(sceneID, manuallyFade, Duration));
+            StartCoroutine(LoadSceneAsync(sceneID, manuallyFade, Duration, onComplete));
         }
 
-        IEnumerator LoadSceneAsync(int sceneIndex, bool manuallyFade, float delay)
+        IEnumerator LoadSceneAsync(int sceneIndex, bool manuallyFade, float delay, ButtonActionSimple onComplete)
         {
+            Debug.Log("Loading Scene: " + sceneIndex);
             AdsManager.Instance?.ShowBigBannerAds();
             AudioPlayer.instance?.StopMusic();
 
@@ -126,6 +132,7 @@ namespace MyTools.LoadingManager
             if (!manuallyFade)
             {
                 AdsManager.Instance?.DestroyBigBanner();
+                UIManager.Instance.OnButtonClicked(onComplete);
                 yield return FadeOut(FadeDuration);
             }
         }
@@ -135,23 +142,24 @@ namespace MyTools.LoadingManager
             CallFakeLoading(onComplete);
         }
 
-        internal void FakeLoading(UIManagerBase uIManager, ButtonActionSimple onComplete)
+        internal void FakeLoading(ButtonActionSimple onComplete)
         {
-            CallFakeLoading(uIManager, onComplete);
+            CallFakeLoading(onComplete);
         }
             
         internal void CallFakeLoading(Action onComplete)
         {
-           
-            StartCoroutine(_FakeLoading(null, new(), onComplete));
+            Show();
+            StartCoroutine(_FakeLoading(new(), onComplete));
         }
         
-        internal void CallFakeLoading(UIManagerBase uIManager, ButtonActionSimple onComplete)
+        internal void CallFakeLoading(ButtonActionSimple onComplete)
         {
-            StartCoroutine(_FakeLoading(uIManager, onComplete, null));
+            Show();
+            StartCoroutine(_FakeLoading(onComplete, null));
         }
 
-        private IEnumerator _FakeLoading(UIManagerBase uIManager, ButtonActionSimple onComplete, Action action)
+        private IEnumerator _FakeLoading(ButtonActionSimple onComplete, Action action)
         {
             if (FillBar) FillBar.fillAmount = 0;
             if (Slider) Slider.value = 0f;
@@ -168,7 +176,8 @@ namespace MyTools.LoadingManager
 
             // OnComplete Ation
             action?.Invoke();
-            uIManager?.OnButtonClicked(onComplete);
+            UIManager.Instance.OnButtonClicked(onComplete);
+            yield return FadeOut();
         }
 
         void Filler(float value)
@@ -188,10 +197,10 @@ namespace MyTools.LoadingManager
             }
         }
 
-        public void FadeOutLoadingScreen(float duration = 1)
+        public void FadeOutLoadingScreen(float duration = 1, ButtonActionSimple onComplete = null)
         {
             AdsManager.Instance?.DestroyBigBanner();
-            StartCoroutine(FadeOut(duration));
+            StartCoroutine(FadeOut(duration, onComplete));
         }
 
         IEnumerator FadeIn(float duration = 1)
@@ -199,9 +208,10 @@ namespace MyTools.LoadingManager
             yield return new WaitForSeconds(duration);
         }
 
-        IEnumerator FadeOut(float duration = 1)
+        IEnumerator FadeOut(float duration = 1, ButtonActionSimple onComplete = null)
         {
             LoadingPanel.Hide();
+            UIManager.Instance.OnButtonClicked(onComplete);
             yield return new WaitForSeconds(duration);
         }
 
