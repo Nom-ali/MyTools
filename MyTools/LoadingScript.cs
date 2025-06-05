@@ -35,17 +35,23 @@ namespace MyTools.LoadingManager
 
         private void Show()
         {
-            if(LoadingPanel == null)
-            {
-                LoadingPanel = GetComponent<AnimationBase>();
+            try {
                 if (LoadingPanel == null)
                 {
-                    Debug.LogError("LoadingPanel AnimationBase is not assigned or found.");
-                    return;
+                    LoadingPanel = GetComponent<AnimationBase>();
+                    if (LoadingPanel == null)
+                    {
+                        Debug.LogError("LoadingPanel AnimationBase is not assigned or found.");
+                        return;
+                    }
                 }
-            }
 
-            LoadingPanel.Show();
+                LoadingPanel.Show();
+            }
+            catch
+            {
+                gameObject.SetActive(true);
+            }
         }
 
         public void LoadScene(int sceneIndex, ButtonActionSimple onComplete = null)
