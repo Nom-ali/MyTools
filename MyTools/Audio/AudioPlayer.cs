@@ -33,7 +33,7 @@ public class AudioPlayer : MonoBehaviour
         if (instance == null)
         {
             instance = this;
-            DontDestroyOnLoad(gameObject);
+            //DontDestroyOnLoad(gameObject);
             LoadSettings();
         }
         else

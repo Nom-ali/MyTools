@@ -6,7 +6,7 @@ namespace MyTools.Timer
     public class Timer : MonoBehaviour
     {
         public float levelTime = 60f; // Set the time for each level in seconds
-        //public Text timerText; // Reference to UI text to display timer
+        public Text timerText; // Reference to UI text to display timer
         public RectTransform clockHand;
 
         [ReadOnly, SerializeField] private float currentTime = 0f;
@@ -48,7 +48,6 @@ namespace MyTools.Timer
             // You can add logic here for level completion or triggering next level
             Debug.Log("<color=red>********** Level Failed **********</color>");
             GameManager.Instance.LevelFail();
-            RewardTimer();
         }
 
         void UpdateTimerDisplay()
@@ -57,16 +56,13 @@ namespace MyTools.Timer
             int seconds = Mathf.FloorToInt(currentTime % 60f);
 
             string timerString = string.Format("{0:00}:{1:00}", minutes, seconds);
-            UIManager.Instance.gameplay.TimeText.text = timerString;
+            timerText.text = timerString;
         }
         void UpdateClockHand()
         {
-            if (clockHand)
-            {
-                float rotationFraction = currentTime / levelTime;
-                float rotationAngle = rotationFraction * 360f;
-                clockHand.localRotation = Quaternion.Euler(0, 0, rotationAngle);
-            }
+            float rotationFraction = currentTime / levelTime;
+            float rotationAngle = rotationFraction * 360f;
+            clockHand.localRotation = Quaternion.Euler(0, 0, rotationAngle);
         }
 
         public void IncreaseTime(float extraTime)
@@ -75,27 +71,6 @@ namespace MyTools.Timer
                 currentTime += extraTime;
 
             isLevelRunning = true;
-        }
-
-        void RewardTimer()
-        {
-            if (UIManager.Instance)
-            {
-                Button rewardbtn = UIManager.Instance.levelFail.RewardAdsBtn;
-                rewardbtn.onClick.RemoveAllListeners();
-                rewardbtn.onClick.AddListener(() =>
-                {
-                    if (AdsManager.Instance)
-                    {
-                        AdsManager.Instance.ShowRewardedAds(() =>
-                        {
-                            StartTimer(60);
-                            UIManager.Instance.ShowPanel(PanelType.Gameplay);
-                            GameManager.Instance.gameStatus.SetGameStatus(GameStatus.GameState.None);
-                        });
-                    }
-                });
-            }
         }
 
     }

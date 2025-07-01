@@ -24,7 +24,7 @@ public class IAPManager : MonoBehaviour
 
     private void Start()
     {
-        if (DisableOnPurchase && gameObject.name.ToLower().Contains("removeads") && SaveManager.Prefs.GetBool(SharedVariables.RemoveAds, false) == true)
+        if (SaveManager.Prefs.GetBool(SharedVariables.RemoveAds, false) == true)
         {
             gameObject.SetActive(false);
         }
@@ -103,11 +103,9 @@ public class IAPManager : MonoBehaviour
         if (product.definition.id.Equals(ProductID))
         {
             SaveManager.Prefs.SetBool(SharedVariables.RemoveAds, true);
-            if (AdsManager.Instance)
-                AdsManager.Instance.DestroyBanner();
-
-            if(DisableOnPurchase && gameObject.name.ToLower().Contains("removeads"))
-                gameObject.SetActive(false);
+            //if (AdsManager.Instance)
+            //    AdsManager.Instance.DestroyBanner();
+            gameObject.SetActive(false);
         }
         LoadingPanel?.GetComponent<AnimationBase>().Hide();
         Debug.Log($"Product: {product.definition.id} purchased successfully.");

@@ -117,7 +117,7 @@
 //    //Rewarded Ads Reward Call delegate
 //    private Action RewardAction;
 
-//    private bool RemoveAds => PlayerPrefs.GetInt("RemoveAds", 0) == 1;
+//    private bool ProductID => PlayerPrefs.GetInt("ProductID", 0) == 1;
 
 //    #endregion
 
@@ -334,7 +334,7 @@
 //                        if (DontLoadAds.Equals(false))
 //                        {
 //                            AdmobInitialized = true;
-//                            if (!RemoveAds)
+//                            if (!ProductID)
 //                            {
 //                                if (ShowBannerAtStart)
 //                                    ShowAdmobBanner();
@@ -373,7 +373,7 @@
 //    #region Admob banner
 //    private void RequestAdmobBanner(string BannerAdsID, ref BannerView bannerView, AdSize adSize, AdPosition bannerPosition)
 //    {
-//        if (RemoveAds) return;
+//        if (ProductID) return;
 
 //        // Requesting Banner ADS
 //        Debug.Log(" Admob: Requesting Banner with ID: " + BannerAdsID);
@@ -471,7 +471,7 @@
 //    {
 //        Debug.Log(" Admob: Requesting Interstitial Ads with ID: " + InterstitialAdsID);
 
-//        if (RemoveAds)
+//        if (ProductID)
 //            return;
 
 //        this.interstitialAd?.Destroy();
@@ -628,7 +628,7 @@
 //    {
 //        Debug.Log("Admob: Requesting AppOpen Ads with ID: " + AppOpenAdsID);
 
-//        if (RemoveAds)
+//        if (ProductID)
 //            return;
 
 //        // destroy ads if not empty
@@ -726,7 +726,7 @@
 //    /// </summary>
 //    private void LoadUnityBanner()
 //    {
-//        if (RemoveAds)
+//        if (ProductID)
 //            return;
 
 //        Debug.Log(" UnityAds: banner Loading");
@@ -739,7 +739,7 @@
 //    /// </summary>
 //    private void LoadUnityInter()
 //    {
-//        if (RemoveAds)
+//        if (ProductID)
 //            return;
 
 //        Debug.Log(" UnityAds: inter Loading");
@@ -824,7 +824,7 @@
 //    /// </summary>
 //    public void ShowBannerAds()
 //    {
-//        if (RemoveAds || isAdmobBanner)
+//        if (ProductID || isAdmobBanner)
 //            return;
 
 //        /// if platform is admob only
@@ -1118,7 +1118,7 @@
 //            ///Loading ads here, when unity SDK is initialized
 //            if (DontLoadAds.Equals(false))
 //            {
-//                if (!RemoveAds)
+//                if (!ProductID)
 //                {
 //                    LoadUnityInter();
 //                    if (EnableUnityBanner)

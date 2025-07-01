@@ -23,7 +23,7 @@ public class FirebaseManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    private async void Start()
+    internal async void Init()
     {
         if(SelectedFirebaseSDK == FirebaseSDK.None)
         {

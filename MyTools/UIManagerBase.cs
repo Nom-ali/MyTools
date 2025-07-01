@@ -15,16 +15,16 @@ namespace MyTools
         #region Variables
         [Foldout("******************** UI Manager ********************", true)]
         [ReadOnly]
-        protected GameObject currentPanel;
+        [SerializeField] protected GameObject currentPanel;
 
         [Header("---------- Internet ----------")]
         [SerializeField] internal bool checkInternet = true;
         internal InternetConnectivity internetConnectivity = null;
 
         [Header("---------- Panels ----------")]
+        [SerializeField] internal LoadingScript LoadingPanel = null;
         [SerializeField] internal PanelSettings[] PanelsList;
         [SerializeField] internal PanelSettings[] IndPanelsList;
-
 
         [Header("---------- Coin System ----------")]
         [SerializeField] internal bool EnableCoinSystem = false;
@@ -32,7 +32,6 @@ namespace MyTools
         [SerializeField] internal TextMeshProUGUI CoinsText;
 
 
-        private LoadingScript loadingScript = null;
         private PopupPanel popupPanel = null;
         #endregion
 
@@ -58,12 +57,8 @@ namespace MyTools
             Application.targetFrameRate = 60;
 
             //Get loading panel
-            if (!loadingScript)
-            {
-                var loadingPanel = GetPanel_Ind(PanelType.LoadingScene);
-                loadingScript = loadingPanel.Panel.GetComponent<LoadingScript>();
-            }
-
+            LoadingPanel ??= LoadingPanel = FindFirstObjectByType<LoadingScript>();
+            
             if (EnableCoinSystem && CoinsText)
             {
                 SaveManager.SaveManager.Currency.Initialize(SharedVariables.Coins, 10, CoinsText);
@@ -198,7 +193,6 @@ namespace MyTools
             if (currentPanel.name.ToLower().Contains("genericpopup"))
                 currentPanel = OldPanel;
         }
-                     
 
         public GameObject ShowPanel(PanelType panelType)
         {
@@ -214,38 +208,47 @@ namespace MyTools
         {
             return Show_Panel(panelType, OnShow: OnComplete);
         }
+
+        internal IEnumerator ShowLoadingPopup(float disableAfter = 3)
+        {
+            GameObject panel = ShowPanel_Ind(PanelType.LoadingPopup);
+            float delay = panel.GetComponent<AnimationBase>().GetDelays();
+            yield return new WaitForSeconds(disableAfter + delay);
+            HidePanel_Ind();
+            yield return new WaitUntil(() => GetPanel_Ind(PanelType.LoadingPopup).Panel.activeSelf == false);
+        }
         #endregion
 
 
         #region General 
-        internal void Restart(bool fadeLoadingScreen = false, ButtonActionSimple onComplete = null)
+        internal void Restart(LoadSceneMode mode, bool fadeLoadingScreen = false, ButtonActionSimple onComplete = null)
         {
-            if (loadingScript)
-                loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex, fadeLoadingScreen, onComplete);
+            if (LoadingPanel)
+                LoadingPanel.LoadingAsync(SceneManager.GetActiveScene().buildIndex, mode, fadeLoadingScreen, onComplete);
             else
             {
-                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex, mode);
                 OnButtonClicked(onComplete);
             }
         }
 
-        internal void GotoHome(bool fadeLoadingScreen = false, ButtonActionSimple onComplete = null)
+        internal void GotoHome(LoadSceneMode mode, bool fadeLoadingScreen = false, ButtonActionSimple onComplete = null)
         {
-            if (loadingScript)
-                loadingScript.LoadingAsync(SharedVariables.MainMenu, fadeLoadingScreen, onComplete);
+            if (LoadingPanel)
+                LoadingPanel.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, mode, fadeLoadingScreen, onComplete);
             else 
             {
-                SceneManager.LoadScene(SharedVariables.MainMenu);
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex - 1, mode);
                 OnButtonClicked(onComplete);
             } 
         }
-        void GoToGamePlay(bool fadeLoadingScreen = false, ButtonActionSimple onComplete = null)
+        void GoToGamePlay(LoadSceneMode mode, bool fadeLoadingScreen = false, ButtonActionSimple onComplete = null)
         {
-            if (loadingScript)
-                loadingScript.LoadingAsync(SharedVariables.Gameplay, fadeLoadingScreen, onComplete);
+            if (LoadingPanel)
+                LoadingPanel.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, mode, fadeLoadingScreen, onComplete);
             else
             {
-                SceneManager.LoadScene(SharedVariables.Gameplay);
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1, mode);
                 OnButtonClicked(onComplete);
             }
         }
@@ -280,25 +283,25 @@ namespace MyTools
 
         internal void FakeLoadScene(ButtonActionSimple onComplete)
         {
-            loadingScript?.FakeLoading(onComplete);
+            LoadingPanel?.FakeLoading(onComplete);
         } 
         
         internal void FakeLoadScene(Action onComplete)
         {              
-            loadingScript?.FakeLoading(onComplete);
+            LoadingPanel?.FakeLoading(onComplete);
         }
 
         internal void LoadScene<T>(T scene)
         {            
-            if (loadingScript)
+            if (LoadingPanel)
             {
                 if (typeof(T) == typeof(int))
                 {
-                    loadingScript.LoadScene((int)(object)scene);
+                    LoadingPanel.LoadScene((int)(object)scene);
                 }
                 else if (typeof(T) == typeof(string))
                 {
-                    loadingScript.LoadScene((string)(object)scene);
+                    LoadingPanel.LoadScene((string)(object)scene);
                 }
                 else
                 {
@@ -307,9 +310,9 @@ namespace MyTools
             }
         }
 
-        internal void ManualFadeLoading(ButtonActionSimple onComplete = null)
+        internal void ManualFadeLoading()
         {
-            loadingScript.FadeOutLoadingScreen(onComplete: onComplete);
+            LoadingPanel.FadeOutLoadingScreen();
         }
         #endregion
 
@@ -333,18 +336,28 @@ namespace MyTools
             {
                 ShowPopup(onButton.popupSetting);
             }
-            else if(onButton.OnBtnClick.Equals(OnClickAction.LoadScene))
+            else if (onButton.OnBtnClick.Equals(OnClickAction.LoadScene))
             {
                 onClick = onButton.LoadScene switch
                 {
-                    LoadSceneBy.Restart => () => Restart(onButton.ManuallyFadeLoading, onButton.onComplete),
-                    LoadSceneBy.LoadNextScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, onButton.ManuallyFadeLoading, onButton.onComplete),
-                    LoadSceneBy.loadPreviousScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, onButton.ManuallyFadeLoading, onButton.onComplete),
-                    LoadSceneBy.MainMenu => () => GotoHome(onButton.ManuallyFadeLoading, onButton.onComplete),
-                    LoadSceneBy.Gameplay => () => GoToGamePlay(onButton.ManuallyFadeLoading, onButton.onComplete),
-                    LoadSceneBy.ByName => () => loadingScript.LoadingAsync(onButton.SceneName, onButton.ManuallyFadeLoading, onButton.onComplete),
-                    LoadSceneBy.ByID => () => loadingScript.LoadingAsync(onButton.SceneID, onButton.ManuallyFadeLoading, onButton.onComplete),
-                    LoadSceneBy.SceneAsset => () => loadingScript.LoadingAsync(onButton.m_Scene.SceneName, onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.Restart => () => LoadingPanel.ReloadScene(),/* Restart(onButton.LoadSceneMode, onButton.ManuallyFadeLoading, onButton.onComplete),*/
+                    LoadSceneBy.LoadNextScene => () => LoadingPanel.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, onButton.LoadSceneMode, onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.loadPreviousScene => () => LoadingPanel.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, onButton.LoadSceneMode, onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.MainMenu => () => GotoHome(onButton.LoadSceneMode, onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.Gameplay => () => GoToGamePlay(onButton.LoadSceneMode, onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.ByName => () => LoadingPanel.LoadingAsync(onButton.SceneName, onButton.LoadSceneMode, onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.ByID => () => LoadingPanel.LoadingAsync(onButton.SceneID, onButton.LoadSceneMode, onButton.ManuallyFadeLoading, onButton.onComplete),
+                    LoadSceneBy.SceneAsset => () => LoadingPanel.LoadingAsync(onButton.m_Scene.SceneName, onButton.LoadSceneMode, onButton.ManuallyFadeLoading, onButton.onComplete),
+                    _ => null
+                };
+            }
+            else if (onButton.OnBtnClick.Equals(OnClickAction.UnloadScene))
+            {
+                onClick = onButton.UnloadScene switch
+                {
+                    UnloadScene.MainMenu => () => LoadingPanel.UnloadAdditiveScene(SharedVariables.MainMenu, onButton.onComplete),
+                    UnloadScene.Gameplay => () => LoadingPanel.UnloadAdditiveScene(SharedVariables.Gameplay, onButton.onComplete),
+                    UnloadScene.Splash => () => LoadingPanel.UnloadAdditiveScene(SharedVariables.Splash, onButton.onComplete),
                     _ => null
                 };
             }
@@ -370,10 +383,11 @@ namespace MyTools
         public void OnButtonClicked(ButtonActionSimple onButton)
         {
             Action onClick = null;
-            if (onButton == null)
+            if (onButton == null || onButton.OnBtnClick == OnClickAction.None)
+            {
                 return;
-
-            if (onButton.OnBtnClick.Equals(OnClickAction.URL))
+            }
+            else if (onButton.OnBtnClick.Equals(OnClickAction.URL))
             {
                 string url = onButton.URL switch
                 {
@@ -388,13 +402,23 @@ namespace MyTools
             {
                 onClick = onButton.LoadScene switch
                 {
-                    LoadSceneBy.Restart => () => Restart(),
-                    LoadSceneBy.LoadNextScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1),
-                    LoadSceneBy.loadPreviousScene => () => loadingScript.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1),
-                    LoadSceneBy.MainMenu => () => GotoHome(),
-                    LoadSceneBy.Gameplay => () => GoToGamePlay(),
-                    LoadSceneBy.ByName => () => loadingScript.LoadingAsync(onButton.SceneName),
-                    LoadSceneBy.ByID => () => loadingScript.LoadingAsync(onButton.SceneID),
+                    LoadSceneBy.Restart => () => LoadingPanel.ReloadScene(), /*, Restart(onButton.LoadSceneMode),*/
+                    LoadSceneBy.LoadNextScene => () => LoadingPanel.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1, onButton.LoadSceneMode),
+                    LoadSceneBy.loadPreviousScene => () => LoadingPanel.LoadingAsync(SceneManager.GetActiveScene().buildIndex - 1, onButton.LoadSceneMode),
+                    LoadSceneBy.MainMenu => () => GotoHome(onButton.LoadSceneMode),
+                    LoadSceneBy.Gameplay => () => GoToGamePlay(onButton.LoadSceneMode),
+                    LoadSceneBy.ByName => () => LoadingPanel.LoadingAsync(onButton.SceneName, onButton.LoadSceneMode),
+                    LoadSceneBy.ByID => () => LoadingPanel.LoadingAsync(onButton.SceneID, onButton.LoadSceneMode),
+                    _ => null
+                };
+            }
+            else if (onButton.OnBtnClick.Equals(OnClickAction.UnloadScene))
+            {
+                onClick = onButton.UnloadScene switch
+                {
+                    UnloadScene.MainMenu => () => LoadingPanel.UnloadAdditiveScene(SharedVariables.MainMenu),
+                    UnloadScene.Gameplay => () => LoadingPanel.UnloadAdditiveScene(SharedVariables.Gameplay),
+                    UnloadScene.Splash => () => LoadingPanel.UnloadAdditiveScene(SharedVariables.Splash),
                     _ => null
                 };
             }
@@ -405,7 +429,7 @@ namespace MyTools
                     OnClickAction.ShowPanel => () => ShowPanel(onButton.Panel),
                     OnClickAction.ShowPanelInd => () => ShowPanel_Ind(onButton.Panel),
                     OnClickAction.HideCurrentPanel => () => HideCurrentPanel(),
-                    OnClickAction.HideIndPanel=> () => HidePanel_Ind(),
+                    OnClickAction.HideIndPanel => () => HidePanel_Ind(),
                     OnClickAction.ExitGame => () => Application.Quit(),
                     OnClickAction.AddClickEvent => () => onButton.OnClickEvent?.Invoke(),
                     _ => null
@@ -417,7 +441,7 @@ namespace MyTools
             AudioPlayer.instance?.PlayButtonSound();
         }
         #endregion
-                                                                
+
 
         #region Show Popup
 
@@ -465,6 +489,7 @@ namespace MyTools
         ExitGame,
         ShowPanel,
         LoadScene,
+        UnloadScene,
         ShowPanelInd,
         AddClickEvent,
         HideCurrentPanel,
@@ -490,6 +515,14 @@ namespace MyTools
         SceneAsset
     }
 
+    public enum UnloadScene
+    {
+        None, 
+        Splash,
+        MainMenu,
+        Gameplay
+    }
+
     [Serializable]
     public class ButtonAction
     {
@@ -502,16 +535,18 @@ namespace MyTools
         public OnClickAction OnBtnClick;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.ShowPanel, OnClickAction.ShowPanelInd)]
         public PanelType Panel = PanelType.None;
-        //[ConditionalField(nameof(Panel), false, PanelType.None)]
-        //public GameObject PanelObject;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.LoadScene)]
         public LoadSceneBy LoadScene = LoadSceneBy.None;
+        [ConditionalField(nameof(OnBtnClick), false, OnClickAction.UnloadScene)]
+        public UnloadScene UnloadScene = UnloadScene.None;
         [ConditionalField(nameof(LoadScene), false, LoadSceneBy.ByName)]
         public string SceneName = "";
         [ConditionalField(nameof(LoadScene), false, LoadSceneBy.ByID)]
         public int SceneID = -1;
         [ConditionalField(nameof(LoadScene), false, LoadSceneBy.SceneAsset)]
         public SceneReference m_Scene;
+        [ConditionalField(nameof(OnBtnClick), false, OnClickAction.LoadScene)]
+        public LoadSceneMode LoadSceneMode = LoadSceneMode.Single;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.LoadScene)]
         public bool ManuallyFadeLoading = false;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.URL)]
@@ -522,8 +557,8 @@ namespace MyTools
         public UnityEvent OnClickEvent = null;
         public Action OnClickButton = null;
         public ButtonActionSimple onComplete = null;
-    }  
-    
+    }
+
     [Serializable]
     public class ButtonActionSimple
     {
@@ -532,15 +567,38 @@ namespace MyTools
         public PanelType Panel;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.LoadScene)]
         public LoadSceneBy LoadScene;
+        [ConditionalField(nameof(OnBtnClick), false, OnClickAction.UnloadScene)]
+        public UnloadScene UnloadScene = UnloadScene.None;
         [ConditionalField(nameof(LoadScene), false, LoadSceneBy.ByName)]
         public string SceneName;
         [ConditionalField(nameof(LoadScene), false, LoadSceneBy.ByID)]
         public string SceneID;
+        [ConditionalField(nameof(OnBtnClick), false, OnClickAction.LoadScene)]
+        public LoadSceneMode LoadSceneMode = LoadSceneMode.Single;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.URL)]
         public URLs URL;
         [ConditionalField(nameof(OnBtnClick), false, OnClickAction.AddClickEvent)]
         public UnityEvent OnClickEvent;
         public Action OnClickButton;
-    }  
+    }
+
+    [Serializable]
+    public struct HintPopup
+    {
+        [Space]
+        public AddListeners Buttons;
+        public Text Title;
+        public Image HintImage;
+    }
+
+    [Serializable]
+    public struct Popup
+    {
+        [Space]
+        public TextMeshProUGUI Title;
+        public TextMeshProUGUI Message;
+        public Button FirstBtn;
+        public Button SecondBtn;
+    }
     #endregion
 }

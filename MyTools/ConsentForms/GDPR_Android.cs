@@ -89,6 +89,7 @@ public class GDPR_Android : MonoBehaviour
     private IEnumerator LoadNextScene()
     {
 
+        FirebaseManager.Instance.Init();
         yield return new WaitForSeconds(3);
         // Move to the next scene (assumes linear build order).
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);

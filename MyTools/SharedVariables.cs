@@ -42,6 +42,7 @@ public class SharedVariables
     public static string SelectedPlayer = "SelectedPlayer_";
     public static string Player_Female = "Player_Female";
 
+    public static string Splash = "1_Splash";
     public static string MainMenu = "2_MainMenu";
     public static string Gameplay = "3_Gameplay";
 

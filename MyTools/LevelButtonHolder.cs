@@ -53,7 +53,7 @@ public class LevelButtonHolder : MonoBehaviour
         SaveManager.Prefs.SetInt(SharedVariables.CurrentLevelNo, levelIndex);
         Debug.Log("Selected Index: " + levelIndex);
 
-        LoadingScript.Instance.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1);
+        UIManager.Instance.LoadingPanel.LoadingAsync(SceneManager.GetActiveScene().buildIndex + 1);
     }
 }
 
