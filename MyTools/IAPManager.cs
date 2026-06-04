@@ -1,26 +1,39 @@
-using System.Collections.Generic;
-using UnityEngine.Purchasing;
-using System.Collections;
-using UnityEngine;
+using GoogleAds;
+using MyTools.SaveManager;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using TMPro;
+using UnityEngine;
+using UnityEngine.Purchasing;
 
 public class IAPManager : MonoBehaviour
 {
-    [SerializeField] private GameObject LoadingPanel;
-    [SerializeField] private bool DisableOnPurchase = false;
+    [Serializable]
+    public class ObjectsToDisable
+    {
+        public GameObject[] ObjectToDisable = null;
+    }
+
+    [SerializeField] private GameObject Loadingpanel;
     [SerializeField] private bool ShowPriceFromStore = false;
+  
+    [SerializeField] private bool DisableOnPurchase = false;
+    [MyBox.ConditionalField(nameof(DisableOnPurchase), false)]
+    public bool self = true;
+    
+    [MyBox.ConditionalField(new[] { nameof(DisableOnPurchase), nameof(self) }, new[] { false, false }, true, false)]
+    public ObjectsToDisable objectsToDisable;
 
+    private AnimationBase loadingpanel;
     private CodelessIAPButton codelessIAPButton;
-
     private Dictionary<string, Action> productRewards;
-
     private Dictionary<string, Func<bool>> IAPProductPurchased = new()
     {
         { "removeads", () => PlayerPrefs.GetInt("RemoveAds", 0) == 1},
         { "megabundle", () => PlayerPrefs.GetInt("MegaBundle", 0) == 1},
-        { "tubes", () => PlayerPrefs.GetInt("Tubes", 0) == 1},
-        { "backgrounds", () => PlayerPrefs.GetInt("BackGrounds", 0) == 1},
+        { "specialbundle", () => PlayerPrefs.GetInt("Tubes", 0) == 1},
     };
 
     private void OnEnable()
@@ -30,13 +43,14 @@ public class IAPManager : MonoBehaviour
 
     private void Awake()
     {
+        if (!loadingpanel) loadingpanel = Loadingpanel.GetComponent<AnimationBase>();
 
         if (TryGetComponent(out codelessIAPButton))
         {
             if (codelessIAPButton.buttonType == CodelessButtonType.Purchase)
             {
-                if (ShowPriceFromStore) GetComponentInChildren<TextMeshProUGUI>().text = "???";
-                
+                //if (ShowPriceFromStore) GetComponentInChildren<TextMeshProUGUI>().text = "Buy";
+
                 codelessIAPButton.onProductFetched.RemoveAllListeners();
                 codelessIAPButton.onProductFetched.AddListener(OnProductDataFetched);
 
@@ -79,12 +93,11 @@ public class IAPManager : MonoBehaviour
         if (codelessIAPButton.button)
             codelessIAPButton.button.onClick.AddListener(() =>
             {
-                if (LoadingPanel) LoadingPanel.GetComponent<AnimationBase>().Show();
+                if (loadingpanel) loadingpanel.Show();
             });
 
         yield return null;
     }
-
 
     private IEnumerator DisableObject()
     {
@@ -95,14 +108,18 @@ public class IAPManager : MonoBehaviour
             Debug.Log($"[IAP] Disabling object based on purchase Product '{lowName}' purchased: {check}", gameObject);
             if (DisableOnPurchase && check)
             {
-                yield return new WaitUntil(() => codelessIAPButton != null && codelessIAPButton.button != null);
-                codelessIAPButton.button.interactable = false;
-                yield return new WaitForEndOfFrame();
-                gameObject.SetActive(false);
+                if(self)
+                    gameObject.SetActive(false);
+                else
+                {
+                    for (int i = 0; i < objectsToDisable.ObjectToDisable.Length; i++)
+                    {
+                        objectsToDisable.ObjectToDisable[i].SetActive(false);
+                    }
+                }
             }
-           
         }
-
+        yield return null;
     }
 
     void OnProductDataFetched(Product product)
@@ -117,14 +134,17 @@ public class IAPManager : MonoBehaviour
 
     void OnProductDataFetchedFailed(ProductDefinition definition, string message)
     {
+        Debug.Log("Product data failed to fetched: " + definition);
+
         if (ShowPriceFromStore)
-            GetComponentInChildren<TextMeshProUGUI>().text = "???";
+            GetComponentInChildren<TextMeshProUGUI>().text = "Buy";
 
         codelessIAPButton.button.interactable = false;
     }
 
     void OnPurchaseFetched(Order order)
     {
+        if (loadingpanel) loadingpanel.Hide();
         if (order == null)
         {
             Debug.LogWarning("[IAP] OnPurchaseFetched called with null Order.");
@@ -139,6 +159,7 @@ public class IAPManager : MonoBehaviour
 
     private void OnOrderPending(PendingOrder pendingOrder)
     {
+        if (loadingpanel) loadingpanel.Hide();
         if (pendingOrder == null)
         {
             Debug.LogWarning("[IAP] OnOrderPending called with null PendingOrder.");
@@ -150,7 +171,6 @@ public class IAPManager : MonoBehaviour
             Debug.Log($"[IAP] cart item: {item.Product}");
             GrantProduct(item.Product);
         }
-        if (LoadingPanel) LoadingPanel.GetComponent<AnimationBase>().Hide();
     }
 
     private void OnOrderConfirmed(ConfirmedOrder confirmedOrder)
@@ -169,6 +189,7 @@ public class IAPManager : MonoBehaviour
 
     private void OnOrderDeferred(DeferredOrder deferredOrder)
     {
+        if (loadingpanel) loadingpanel.Hide();
         if (deferredOrder == null)
         {
             Debug.LogWarning("[IAP] OnOrderDeferred called with null DeferredOrder.");
@@ -181,6 +202,7 @@ public class IAPManager : MonoBehaviour
 
     private void OnPurchaseFailed(FailedOrder failedOrder)
     {
+        if (loadingpanel) loadingpanel.Hide();
         if (failedOrder == null)
         {
             Debug.LogWarning("[IAP] OnPurchaseFailed called with null FailedOrder.");
@@ -190,14 +212,13 @@ public class IAPManager : MonoBehaviour
         // FailedOrder usually contains details; depending on exact IAP build,
         // you may have accessors for reason/message.
         Debug.LogWarning("[IAP] Purchase failed (FailedOrder).");
-        if (LoadingPanel) LoadingPanel.GetComponent<AnimationBase>().Hide();
         // Example: show "Cancelled" / "Failed" UI and re-enable button
     }
 
     void OnTransactionRestored(bool success, string error)
     {
         Debug.Log("Transactions restored: " + success);
-        if (LoadingPanel) LoadingPanel.GetComponent<AnimationBase>().Hide();
+        if (loadingpanel) loadingpanel.Hide();
     }
 
     /// <summary>
@@ -210,7 +231,7 @@ public class IAPManager : MonoBehaviour
 
         if (PlayerPrefs.GetInt($"IAP_GRANTED_{id}", 0) == 1)
             return;
-        
+
         if (productRewards.TryGetValue(id, out var rewardAction))
         {
             rewardAction.Invoke();
@@ -221,54 +242,43 @@ public class IAPManager : MonoBehaviour
         {
             Debug.LogWarning($"[IAP] Unhandled product ID: {id}");
         }
-
-      
     }
 
 
     private void InitializeProductRewards()
     {
-        productRewards = new Dictionary<string, Action>
+        productRewards = new Dictionary<string, System.Action>
         {
             {
                 IAPProductIDs.RemoveAds, () =>
                 {
-                    PlayerPrefs.SetInt("RemoveAds", 1);
-                    ApplovinManager.Instance.DestroyBanner();
-                    ApplovinManager.Instance.DestroyBigBanner();
+                    SaveManager.Prefs.SetBool(SharedVariables.RemoveAds, true, true);
+                    AdsManager.Instance?.DestroyBanner();
+                    AdsManager.Instance?.DestroyBigBanner();
                 }
             },
             {
-                IAPProductIDs.Coin1, () =>
+                IAPProductIDs.Coin500, () =>
                 {
-                    PlayerPrefs.SetInt("Coins", PlayerPrefs.GetInt("Coins") + 1000);
+                    SaveManager.Currency.Value += 500;
                 }
             },
             {
-                IAPProductIDs.Coin2, () =>
+                IAPProductIDs.Coin1000, () =>
                 {
-                    PlayerPrefs.SetInt("Coins", PlayerPrefs.GetInt("Coins") + 3000);
+                    SaveManager.Currency.Value += 1000;
                 }
             },
-            {
-                IAPProductIDs.Tubes, () =>
-                {
-                    UnlockAllTubes();
-                    PlayerPrefs.SetInt("Tubes", 1);
-                }
-            },
-            {
-                IAPProductIDs.Background, () =>
-                {
-                    UnlockAllBG();
-                    PlayerPrefs.SetInt("BackGrounds", 1);
-                }
-            } ,
             {
                 IAPProductIDs.MegaBundle, () =>
                 {
                     MegaBundle();
-                    PlayerPrefs.SetInt("MegaBundle", 1);
+                }
+            },
+            {
+                IAPProductIDs.SpecialBundle, () =>
+                {
+                    SpecialBundle();
                 }
             }
 
@@ -277,35 +287,38 @@ public class IAPManager : MonoBehaviour
     }
 
 
-    void UnlockAllTubes()
-    {
-        Store_Handler.instance.PurchaseBottles(5);
-    }
-
-    void UnlockAllBG()
-    {
-        Store_Handler.instance.PurchaseBGs(10);
-    }
 
     void MegaBundle()
     {
-        PlayerPrefs.SetInt("RemoveAds", 1);
-        ApplovinManager.Instance.DestroyBanner();
-        ApplovinManager.Instance.DestroyBigBanner();
+        SaveManager.Prefs.SetBool(GetUnlockKey(SelectionCategory.Ball, 18), true, true);
+        SaveManager.Prefs.SetBool(SharedVariables.RemoveAds, true, true);
+        AdsManager.Instance?.DestroyBanner();
+        AdsManager.Instance?.DestroyBigBanner();
+        SaveManager.Currency.Value += 1000;
 
-        PlayerPrefs.SetInt("Coins", PlayerPrefs.GetInt("Coins") + 1500);
-
-        Store_Handler.instance.PurchaseBottles(3);
-        Store_Handler.instance.PurchaseBGs(5);
     }
+
+    void SpecialBundle()
+    {
+        SaveManager.Prefs.SetBool(GetUnlockKey(SelectionCategory.Ball, 20), true, true);
+        SaveManager.Prefs.SetBool(GetUnlockKey(SelectionCategory.Ball, 21), true, true);
+        SaveManager.Prefs.SetBool(SharedVariables.RemoveAds, true, true);
+        AdsManager.Instance?.DestroyBanner();
+        AdsManager.Instance?.DestroyBigBanner();
+        SaveManager.Currency.Value += 2000;
+    }
+    private string GetUnlockKey(SelectionCategory category, int index)
+    {
+        return $"UNLOCK_{category}_{index}";
+    }
+
 }
 
 public static class IAPProductIDs
 {
-    public static readonly string Coin1 = "ios.hadeel.watersort.coins1";
-    public static readonly string Coin2 = "ios.hadeel.watersort.coins2";
-    public static readonly string RemoveAds = "ios.hadeel.watersort.removeads";
-    public static readonly string Tubes = "ios.hadeel.watersort.tubes";
-    public static readonly string Background = "ios.hadeel.watersort.bg";
-    public static readonly string MegaBundle = "ios.hadeel.watersort.megabundle";
+    public static readonly string Coin500 = "com.polaris.ballgame.coins500";
+    public static readonly string Coin1000 = "com.polaris.ballgame.coins1000";
+    public static readonly string RemoveAds = "com.polaris.ballgame.removeads";
+    public static readonly string MegaBundle = "com.polaris.ballgame.megabundle";
+    public static readonly string SpecialBundle = "com.polaris.ballgame.specialbundle";
 }
