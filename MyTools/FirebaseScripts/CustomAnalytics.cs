@@ -15,6 +15,11 @@ public class CustomAnalytics : MonoBehaviour
         m_LogEvent(combinedEvent);
     }
 
+    internal void LogEvent(string messages, Firebase.Analytics.Parameter[] parameter)
+    {
+        m_LogEvent(messages, parameter);
+    }
+
     string ReplaceSpecialCharacters(string input)
     {
         char[] inputArray = input.ToCharArray();
@@ -59,6 +64,30 @@ public class CustomAnalytics : MonoBehaviour
         try
         {
             Firebase.Analytics.FirebaseAnalytics.LogEvent(newString);
+
+            Debug.Log("Analytics: " + newString);
+
+        }
+        catch (System.Exception e)
+        {
+            Debug.Log("Analytics: Error in Analytics: " + e.ToString());
+
+        }
+    }
+
+    private void m_LogEvent(string eventNames, Firebase.Analytics.Parameter[] parameter)
+    {
+        if (!isFireBaseOkToUse || string.IsNullOrEmpty(eventNames))
+        {
+            Debug.Log("Analytics: Message is empty or Firebase is not Ok To Use ");
+            return;
+        }
+
+        string newString = ReplaceSpecialCharacters(eventNames);
+
+        try
+        {
+            Firebase.Analytics.FirebaseAnalytics.LogEvent(newString, parameter);
 
             Debug.Log("Analytics: " + newString);
 
